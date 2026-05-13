@@ -295,43 +295,72 @@ async function loadEmployees() {
 
 function displayEmployees(data) {
     const tbody = document.getElementById('employeeTableBody');
-    tbody.innerHTML = '';
+    tbody.innerHTML = ''; // Safe: only clearing
 
     if (!data.data || data.data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No employees found</td></tr>';
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 9;
+        td.className = 'text-center text-muted py-4';
+        td.textContent = 'No employees found';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
         return;
     }
 
     data.data.forEach(emp => {
-        const row = `
-            <tr>
-                <td><strong>${emp.nik || '-'}</strong></td>
-                <td>${emp.nama || '-'}</td>
-                <td><small>${emp.email || '-'}</small></td>
-                <td>${emp.jabatan || '-'}</td>
-                <td>${emp.department || '-'}</td>
-                <td>
-                    <span class="badge ${emp.status_pkwtt === 'TETAP' ? 'bg-success' : 'bg-warning'}">
-                        ${emp.status_pkwtt || '-'}
-                    </span>
-                </td>
-                <td>${emp.tenure_formatted || '-'}</td>
-                <td>${emp.age || '-'}</td>
-                <td>
-                    <button class="btn btn-sm btn-outline-primary" onclick="editEmployee(${emp.id})">Edit</button>
-                </td>
-            </tr>
-        `;
-        tbody.innerHTML += row;
+        const tr = document.createElement('tr');
+
+        // SECURITY FIX: Create cells safely using textContent (prevents XSS)
+        const createCell = (content, isHTML = false) => {
+            const td = document.createElement('td');
+            if (isHTML) {
+                // Only use innerHTML for trusted system-generated content
+                td.innerHTML = content;
+            } else {
+                // Use textContent for user data (automatically escapes HTML)
+                td.textContent = content || '-';
+            }
+            return td;
+        };
+
+        tr.appendChild(createCell(emp.nik));
+        tr.appendChild(createCell(emp.nama));
+        tr.appendChild(createCell(emp.email));
+        tr.appendChild(createCell(emp.jabatan));
+        tr.appendChild(createCell(emp.department));
+
+        // Badge (trusted content - only values from enum)
+        const badgeClass = emp.status_pkwtt === 'TETAP' ? 'bg-success' : 'bg-warning';
+        tr.appendChild(createCell(`<span class="badge ${badgeClass}">${escapeHtml(emp.status_pkwtt || '-')}</span>`, true));
+
+        tr.appendChild(createCell(emp.tenure_formatted));
+        tr.appendChild(createCell(emp.age));
+
+        // Action button
+        const actionTd = document.createElement('td');
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-sm btn-outline-primary';
+        editBtn.textContent = 'Edit';
+        editBtn.onclick = () => editEmployee(emp.id);
+        actionTd.appendChild(editBtn);
+        tr.appendChild(actionTd);
+
+        tbody.appendChild(tr);
     });
 
     // Update stats
     document.getElementById('totalCount').textContent = data.total || 0;
-    
+
     // Update pagination
     updatePagination(data);
 }
 
+// SECURITY FIX: Helper function to escape HTML characters
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 function updatePagination(data) {
     const pagination = document.getElementById('pagination');
     pagination.innerHTML = '';

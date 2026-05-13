@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreEmployeeRequest;
+use App\Http\Requests\UpdateEmployeeRequest;
 use App\Models\Employee;
 use App\Services\EmployeeService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 
 class EmployeeController extends Controller
 {
@@ -18,6 +21,7 @@ class EmployeeController extends Controller
 
     /**
      * Get list of employees with filters and pagination.
+     * SECURITY FIX: DoS protection + proper error handling
      */
     public function index(Request $request)
     {
@@ -25,29 +29,35 @@ class EmployeeController extends Controller
             $filters = $request->only(['search', 'department', 'status_pkwtt', 'jenis_kelamin']);
             $sortBy = $request->input('sort_by', 'nama');
             $sortDir = $request->input('sort_dir', 'asc');
-            $perPage = $request->input('per_page', 50);
+
+            // SECURITY FIX: Prevent DoS by limiting per_page maximum to 100
+            $perPage = min((int) $request->input('per_page', 20), 100);
 
             $employees = $this->employeeService->getEmployeesList(
                 $filters,
                 $sortBy,
                 $sortDir,
-                (int) $perPage
+                $perPage
             );
 
             return response()->json([
                 'success' => true,
                 'data' => $employees->items(),
-                'meta' => [
-                    'total' => $employees->total(),
-                    'per_page' => $employees->perPage(),
-                    'current_page' => $employees->currentPage(),
-                    'last_page' => $employees->lastPage(),
-                ],
+                'total' => $employees->total(),
+                'per_page' => $employees->perPage(),
+                'current_page' => $employees->currentPage(),
+                'last_page' => $employees->lastPage(),
             ]);
         } catch (\Exception $e) {
+            // SECURITY FIX: Log error details, don't expose to frontend
+            Log::error('Employee fetch failed', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Failed to fetch employees. Please contact support.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
@@ -88,30 +98,18 @@ class EmployeeController extends Controller
 
     /**
      * Create a new employee.
-     * Only HR can perform this action.
+     * SECURITY FIX: Use FormRequest with built-in authorization
      */
-    public function store(Request $request)
+    public function store(StoreEmployeeRequest $request)
     {
         try {
-            $validated = $request->validate([
-                'nik' => 'required|string|unique:employees',
-                'no_ktp' => 'required|string|unique:employees',
-                'nama' => 'required|string',
-                'department' => 'required|string',
-                'jabatan' => 'required|string',
-                'tempat_lahir' => 'nullable|string',
-                'tanggal_lahir' => 'nullable|date',
-                'tanggal_masuk' => 'required|date',
-                'jenis_kelamin' => 'nullable|in:L,P',
-                'dept_on_line' => 'nullable|string',
-                'dept_on_line_awal' => 'nullable|string',
-                'status_pkwtt' => 'required|in:TETAP,KONTRAK',
-                'status_keluarga' => 'nullable|string',
-                'pendidikan' => 'nullable|string',
-                'alamat' => 'nullable|string',
-            ]);
+            // Validation and authorization already checked by FormRequest
+            $employee = $this->employeeService->createEmployee($request->validated());
 
-            $employee = $this->employeeService->createEmployee($validated);
+            Log::info('Employee created', [
+                'employee_id' => $employee->id,
+                'created_by' => auth()->user()->email,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -119,39 +117,27 @@ class EmployeeController extends Controller
                 'data' => $employee,
             ], Response::HTTP_CREATED);
         } catch (\Exception $e) {
+            Log::error('Employee creation failed', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Failed to create employee. Please contact support.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
     /**
      * Update employee data.
-     * Only HR can perform this action.
+     * SECURITY FIX: Use FormRequest with authorization
      */
-    public function update(Request $request, $id)
+    public function update(UpdateEmployeeRequest $request, $id)
     {
         try {
-            $validated = $request->validate([
-                'nik' => 'sometimes|string|unique:employees,nik,' . $id,
-                'no_ktp' => 'sometimes|string|unique:employees,no_ktp,' . $id,
-                'nama' => 'sometimes|string',
-                'department' => 'sometimes|string',
-                'jabatan' => 'sometimes|string',
-                'tempat_lahir' => 'nullable|string',
-                'tanggal_lahir' => 'nullable|date',
-                'tanggal_masuk' => 'sometimes|date',
-                'jenis_kelamin' => 'nullable|in:L,P',
-                'dept_on_line' => 'nullable|string',
-                'dept_on_line_awal' => 'nullable|string',
-                'status_pkwtt' => 'sometimes|in:TETAP,KONTRAK',
-                'status_keluarga' => 'nullable|string',
-                'pendidikan' => 'nullable|string',
-                'alamat' => 'nullable|string',
-            ]);
-
-            $updated = $this->employeeService->updateEmployee($id, $validated);
+            $employee = Employee::findOrFail($id);
+            $updated = $this->employeeService->updateEmployee($id, $request->validated());
 
             if (!$updated) {
                 return response()->json([
@@ -160,26 +146,57 @@ class EmployeeController extends Controller
                 ], Response::HTTP_INTERNAL_SERVER_ERROR);
             }
 
+            Log::info('Employee updated', [
+                'employee_id' => $id,
+                'updated_by' => auth()->user()->email,
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Employee updated successfully',
                 'data' => $this->employeeService->getEmployeeDetails($id),
             ]);
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Employee not found',
+            ], Response::HTTP_NOT_FOUND);
+        } catch (\Exception $e) {
+            Log::error('Employee update failed', [
+                'employee_id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update employee. Please contact support.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
     /**
      * Delete employee.
-     * Only HR can perform this action.
+     * SECURITY FIX: Defense in depth - check authorization at method level
      */
     public function destroy($id)
     {
         try {
+            // Defense in depth: Verify authorization
+            if (auth()->user()->role !== 'HR') {
+                Log::warning('Unauthorized deletion attempt', [
+                    'employee_id' => $id,
+                    'user_id' => auth()->id(),
+                    'role' => auth()->user()->role,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You do not have permission to delete employees',
+                ], Response::HTTP_FORBIDDEN);
+            }
+
+            $employee = Employee::findOrFail($id);
             $deleted = $this->employeeService->deleteEmployee($id);
 
             if (!$deleted) {
@@ -189,14 +206,31 @@ class EmployeeController extends Controller
                 ], Response::HTTP_INTERNAL_SERVER_ERROR);
             }
 
+            Log::info('Employee deleted', [
+                'employee_id' => $id,
+                'employee_name' => $employee->nama,
+                'deleted_by' => auth()->user()->email,
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Employee deleted successfully',
             ]);
-        } catch (\Exception $e) {
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Employee not found',
+            ], Response::HTTP_NOT_FOUND);
+        } catch (\Exception $e) {
+            Log::error('Employee deletion failed', [
+                'employee_id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete employee. Please contact support.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
