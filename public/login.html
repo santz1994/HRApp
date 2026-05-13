@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HR App - Login</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .login-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .error {
+            color: #e74c3c;
+            background: #fadbd8;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid #e74c3c;
+        }
+        
+        .success {
+            color: #27ae60;
+            background: #d5f4e6;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid #27ae60;
+        }
+        
+        .demo-creds {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: #555;
+        }
+        
+        .demo-creds strong {
+            color: #333;
+        }
+        
+        .demo-creds p {
+            margin: 5px 0;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>HR App</h1>
+                <p>Employee Management System</p>
+            </div>
+            
+            <div v-if="error" class="error">{{ error }}</div>
+            <div v-if="success" class="success">{{ success }}</div>
+            
+            <form @submit.prevent="login">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input 
+                        id="email"
+                        v-model="form.email" 
+                        type="email" 
+                        placeholder="Enter your email"
+                        required
+                        :disabled="loading"
+                    >
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input 
+                        id="password"
+                        v-model="form.password" 
+                        type="password" 
+                        placeholder="Enter your password"
+                        required
+                        :disabled="loading"
+                    >
+                </div>
+                
+                <button type="submit" :disabled="loading">
+                    <span v-if="loading" class="loading"></span>
+                    {{ loading ? 'Logging in...' : 'Login' }}
+                </button>
+            </form>
+            
+            <div class="demo-creds">
+                <p><strong>Test Credentials:</strong></p>
+                <p><strong>HR User:</strong> hr@hrapp.com</p>
+                <p><strong>Director:</strong> director@hrapp.com</p>
+                <p><strong>Password:</strong> password123</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    form: {
+                        email: '',
+                        password: ''
+                    },
+                    loading: false,
+                    error: '',
+                    success: ''
+                };
+            },
+            methods: {
+                async login() {
+                    this.error = '';
+                    this.success = '';
+                    this.loading = true;
+
+                    try {
+                        const response = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(this.form)
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            this.error = data.message || 'Login failed. Please check your credentials.';
+                            return;
+                        }
+
+                        // Store token and user in localStorage
+                        localStorage.setItem('auth_token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+
+                        this.success = 'Login successful! Redirecting...';
+                        
+                        // Redirect after 1 second
+                        setTimeout(() => {
+                            window.location.href = '/dashboard.html';
+                        }, 1000);
+
+                    } catch (err) {
+                        this.error = 'Connection error. Please try again.';
+                        console.error(err);
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            },
+            mounted() {
+                // If already logged in, redirect to dashboard
+                if (localStorage.getItem('auth_token')) {
+                    window.location.href = '/dashboard.html';
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

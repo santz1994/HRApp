@@ -1,0 +1,36 @@
+<?php
+
+/**
+ * Laravel Artisan Bootstrap File
+ */
+
+/*
+|--------------------------------------------------------------------------
+| Register The Auto Loader
+|--------------------------------------------------------------------------
+|
+| Composer provides a convenient, automatically generated class loader for
+| our application. We just need to utilize it! We'll require it into the
+| script here so that we do not have to worry about the loading any of
+| our classes manually. It feels great to relax.
+|
+*/
+
+require __DIR__ . '/vendor/autoload.php';
+
+$app = require_once __DIR__ . '/bootstrap/app.php';
+
+/*
+|--------------------------------------------------------------------------
+| Run The Artisan Application
+|--------------------------------------------------------------------------
+|
+| When we run the "artisan" binary, we'll execute the resolving logic to
+| bootstrap and start the framework. We'll share the variable scope with
+| the console so that it is "playing in the same sphere" as the commands.
+|
+*/
+
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+
+exit($kernel->handle($input = new Symfony\Component\Console\Input\ArgvInput, new Symfony\Component\Console\Output\ConsoleOutput));

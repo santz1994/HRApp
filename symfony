@@ -1,0 +1,26 @@
+#!/usr/bin/env php
+<?php
+/*
+ * This file is part of the Symfony package.
+ *
+ * (c) Fabien Potencier <fabien@symfony.com>
+ *
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
+ */
+
+if ('cli' !== PHP_SAPI) {
+    echo 'Warning: The "symfony" command should be invoked via the CLI version of PHP, not the '.PHP_SAPI.' SAPI.'.PHP_EOL;
+}
+
+set_time_limit(0);
+
+/**
+ * Finds the root directory sandboxed to SYMFONY_PROJECT_ROOT environment variable
+ */
+$sfProjectRoot = getenv('SYMFONY_PROJECT_ROOT');
+if (!$sfProjectRoot) {
+    $sfProjectRoot = __DIR__;
+}
+
+require_once $sfProjectRoot.'/vendor/autoload.php';
