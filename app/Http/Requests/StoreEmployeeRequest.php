@@ -11,8 +11,9 @@ class StoreEmployeeRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Only HR users can create employees
-        return auth()->check() && auth()->user()->role === 'HR';
+        // Pastikan hanya role HR dan IT yang bisa menambah data (Sesuai Blueprint RBAC)
+        $userRole = strtolower(auth()->user()->role ?? '');
+        return in_array($userRole, ['hr', 'it developer & administrator']);
     }
 
     /**
@@ -21,22 +22,24 @@ class StoreEmployeeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nik' => 'required|string|max:20|unique:employees,nik',
-            'no_ktp' => 'required|string|max:20|unique:employees,no_ktp',
-            'nama' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:employees,email',
+            'nik' => 'required|string|max:50|unique:employees,nik',
+            'no_ktp' => 'required|string|size:16|unique:employees,no_ktp',
+            'nama' => 'required|string|max:150',
             'department' => 'required|string|max:100',
             'jabatan' => 'required|string|max:100',
-            'tempat_lahir' => 'nullable|string|max:255',
-            'tanggal_lahir' => 'required|date|before:today',
-            'tanggal_masuk' => 'required|date|before_or_equal:today',
+            'tempat_lahir' => 'nullable|string|max:100',
+            'tanggal_masuk' => 'required|date',
+            'tanggal_lahir' => 'required|date',
             'jenis_kelamin' => 'required|in:L,P',
-            'dept_on_line' => 'nullable|string|max:100',
-            'dept_on_line_awal' => 'nullable|string|max:100',
-            'status_pkwtt' => 'required|in:TETAP,KONTRAK',
-            'status_keluarga' => 'nullable|string|max:50',
-            'pendidikan' => 'nullable|string|max:50',
-            'alamat' => 'nullable|string|max:500',
+            'dept_on_line_awal' => 'nullable|string',
+            'dept_on_line' => 'nullable|string',
+            'status_pkwtt' => 'required|in:TETAP,KONTRAK,HARIAN,MAGANG',
+            'status_keluarga' => 'required|in:Lajang,Kawin,Cerai Hidup,Cerai Mati',
+            'jumlah_anak' => 'integer|min:0',
+            'pendidikan' => 'nullable|string',
+            'alamat_ktp' => 'nullable|string',
+            'alamat_domisili' => 'nullable|string',
+            // status_pajak tidak divalidasi karena di-generate otomatis oleh Model
         ];
     }
 

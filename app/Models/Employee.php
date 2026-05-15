@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany; // WAJIB DITAMBAHKAN
 use Carbon\Carbon;
 
 class Employee extends Model
@@ -11,14 +12,17 @@ class Employee extends Model
     use HasFactory;
 
     protected $guarded = ['id'];
+    
     protected $casts = [
-        'tanggal_masuk_kerja' => 'date',
+        'tanggal_masuk' => 'date', // PERBAIKAN: Sesuaikan dengan nama kolom migration
         'tanggal_lahir' => 'date',
         'dokumen_pendukung' => 'array',
         'data_kepribadian' => 'array',
         'ai_metrics' => 'array',
     ];
-    protected $appends = ['usia_masuk_bekerja', 'masa_kerja', 'usia_saat_ini'];
+
+    // PERBAIKAN: Sesuaikan dengan nama function Accessor Anda
+    protected $appends = ['age', 'age_on_joining', 'tenure_years', 'tenure_formatted'];
 
     protected $fillable = [
         'nik', 'no_ktp', 'nama', 'department', 'jabatan', 
@@ -29,131 +33,53 @@ class Employee extends Model
         'dokumen_pendukung', 'data_kepribadian', 'ai_metrics'
     ];
 
-    /**
-     * Get the current age of the employee.
-     * Calculated field - NOT stored in database.
-     */
     public function getAgeAttribute(): ?int
     {
-        if (!$this->tanggal_lahir) {
-            return null;
-        }
-        return $this->tanggal_lahir->diffInYears(Carbon::now());
+        return $this->tanggal_lahir ? $this->tanggal_lahir->diffInYears(Carbon::now()) : null;
     }
 
-    /**
-     * Get the age when employee joined.
-     * Calculated field - NOT stored in database.
-     */
     public function getAgeOnJoiningAttribute(): ?int
     {
-        if (!$this->tanggal_lahir || !$this->tanggal_masuk) {
-            return null;
-        }
-        return $this->tanggal_lahir->diffInYears($this->tanggal_masuk);
+        return ($this->tanggal_lahir && $this->tanggal_masuk) 
+            ? $this->tanggal_lahir->diffInYears($this->tanggal_masuk) 
+            : null;
     }
 
-    /**
-     * Get the tenure (masa kerja) of the employee in years.
-     * Calculated field - NOT stored in database.
-     */
     public function getTenureYearsAttribute(): ?float
     {
-        if (!$this->tanggal_masuk) {
-            return null;
-        }
-        return $this->tanggal_masuk->diffInDays(Carbon::now()) / 365.25;
+        return $this->tanggal_masuk ? $this->tanggal_masuk->diffInDays(Carbon::now()) / 365.25 : null;
     }
 
-    /**
-     * Get the tenure in formatted string (e.g., "5 years 3 months").
-     * Calculated field - NOT stored in database.
-     */
     public function getTenureFormattedAttribute(): ?string
     {
-        if (!$this->tanggal_masuk) {
-            return null;
-        }
+        if (!$this->tanggal_masuk) return null;
         
-        $now = Carbon::now();
-        $diff = $this->tanggal_masuk->diff($now);
-        
+        $diff = $this->tanggal_masuk->diff(Carbon::now());
         $parts = [];
-        if ($diff->y > 0) {
-            $parts[] = $diff->y . ' ' . ($diff->y == 1 ? 'year' : 'years');
-        }
-        if ($diff->m > 0) {
-            $parts[] = $diff->m . ' ' . ($diff->m == 1 ? 'month' : 'months');
-        }
-        if ($diff->d > 0) {
-            $parts[] = $diff->d . ' ' . ($diff->d == 1 ? 'day' : 'days');
-        }
+        if ($diff->y > 0) $parts[] = $diff->y . ' Tahun';
+        if ($diff->m > 0) $parts[] = $diff->m . ' Bulan';
         
-        return implode(', ', $parts) ?: '0 days';
+        return implode(', ', $parts) ?: '0 Hari';
     }
 
-    /**
-     * Scope: Filter by department.
-     */
-    public function scopeByDepartment($query, string $department)
-    {
-        return $query->where('department', $department);
-    }
-
-    /**
-     * Scope: Filter by status PKWTT.
-     */
-    public function scopeByStatusPKWTT($query, string $status)
-    {
-        return $query->where('status_pkwtt', $status);
-    }
-
-    /**
-     * Scope: Filter by gender.
-     */
-    public function scopeByGender($query, string $gender)
-    {
-        return $query->where('jenis_kelamin', $gender);
-    }
-
-    /**
-     * Scope: Search by multiple fields.
-     */
-    public function scopeSearch($query, string $search)
-    {
-        return $query->where(function ($q) use ($search) {
-            $q->where('nik', 'like', "%{$search}%")
-              ->orWhere('no_ktp', 'like', "%{$search}%")
-              ->orWhere('nama', 'like', "%{$search}%")
-              ->orWhere('department', 'like', "%{$search}%");
-        });
-    }
-
+    // RELASI
     public function attendances(): HasMany
     {
         return $this->hasMany(Attendance::class, 'nik', 'nik');
     }
 
-    // PERSIAPAN POIN 25: Relasi Riwayat SKD (Surat Keterangan Dokter)
     public function medicalLeaves(): HasMany
     {
         return $this->hasMany(MedicalLeave::class, 'nik', 'nik');
     }
 
+    // EVENT BOOTED (Otomatisasi Status Pajak)
     protected static function booted()
     {
         static::saving(function ($employee) {
-            $employee->status_pajak = self::calculateStatusPajak(
-                $employee->status_keluarga, 
-                $employee->jumlah_anak
-            );
+            $prefix = ($employee->status_keluarga === 'Kawin') ? 'K' : 'TK';
+            $anak = min((int)$employee->jumlah_anak, 3);
+            $employee->status_pajak = "{$prefix}/{$anak}";
         });
-    }
-
-    public static function calculateStatusPajak($status_keluarga, $jumlah_anak)
-    {
-        $prefix = ($status_keluarga === 'Kawin') ? 'K' : 'TK';
-        $anak = min($jumlah_anak, 3); // PTKP maksimal menanggung 3 anak
-        return "{$prefix}/{$anak}";
     }
 }

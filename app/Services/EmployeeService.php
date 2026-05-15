@@ -171,8 +171,12 @@ class EmployeeService
     /**
      * Validate employee data.
      */
+    /**
+     * Validate employee data (Deep Validation untuk 26 Poin Skema).
+     */
     private function validateEmployeeData(array $data, bool $requireAll = true): void
     {
+        // Sesuaikan dengan skema tabel terbaru
         $requiredFields = ['nik', 'no_ktp', 'nama', 'department', 'jabatan', 'tanggal_masuk'];
 
         foreach ($requiredFields as $field) {
@@ -184,27 +188,26 @@ class EmployeeService
             }
         }
 
-        // Validate date formats
-        if (isset($data['tanggal_masuk'])) {
-            if (!\strtotime($data['tanggal_masuk'])) {
-                throw new \Exception("Invalid date format for 'tanggal_masuk'. Use YYYY-MM-DD.");
+        // Validasi format tanggal
+        foreach (['tanggal_masuk', 'tanggal_lahir'] as $dateField) {
+            if (!empty($data[$dateField]) && !\strtotime($data[$dateField])) {
+                throw new \Exception("Invalid date format for '{$dateField}'. Use YYYY-MM-DD.");
             }
         }
 
-        if (isset($data['tanggal_lahir'])) {
-            if (!\strtotime($data['tanggal_lahir'])) {
-                throw new \Exception("Invalid date format for 'tanggal_lahir'. Use YYYY-MM-DD.");
-            }
-        }
-
-        // Validate gender
-        if (isset($data['jenis_kelamin']) && !in_array($data['jenis_kelamin'], ['L', 'P'])) {
+        // Validasi Jenis Kelamin
+        if (!empty($data['jenis_kelamin']) && !in_array($data['jenis_kelamin'], ['L', 'P'])) {
             throw new \Exception("Invalid gender. Must be 'L' or 'P'.");
         }
 
-        // Validate status PKWTT
-        if (isset($data['status_pkwtt']) && !in_array($data['status_pkwtt'], ['TETAP', 'KONTRAK'])) {
-            throw new \Exception("Invalid status PKWTT. Must be 'TETAP' or 'KONTRAK'.");
+        // Validasi Status PKWTT (Ditambah HARIAN dan MAGANG)
+        if (!empty($data['status_pkwtt']) && !in_array(strtoupper($data['status_pkwtt']), ['TETAP', 'KONTRAK', 'HARIAN', 'MAGANG'])) {
+            throw new \Exception("Invalid status PKWTT. Must be 'TETAP', 'KONTRAK', 'HARIAN', or 'MAGANG'.");
+        }
+
+        // Validasi Status Keluarga
+        if (!empty($data['status_keluarga']) && !in_array(ucwords($data['status_keluarga']), ['Lajang', 'Kawin', 'Cerai Hidup', 'Cerai Mati'])) {
+            throw new \Exception("Invalid status keluarga. Must be 'Lajang', 'Kawin', 'Cerai Hidup', or 'Cerai Mati'.");
         }
     }
 }

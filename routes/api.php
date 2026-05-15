@@ -32,22 +32,23 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Employee Routes - Accessible by HR and Director (Read-only for Director)
     Route::prefix('employees')->group(function () {
-        // Read endpoints - HR and Director
-        Route::middleware('checkAnyRole:hr,director')->group(function () {
+        // Read endpoints (Dashboard, Analytics, List)
+        Route::middleware('checkAnyRole:hr,director,admin_department,it')->group(function () {
             Route::get('/', [EmployeeController::class, 'index']);
             Route::get('/statistics', [EmployeeController::class, 'statistics']);
             Route::get('/{id}', [EmployeeController::class, 'show']);
         });
 
-        // Write endpoints - HR only
-        Route::middleware('checkRole:hr')->group(function () {
+        // Write endpoints (CRUD) - HR and IT
+        Route::middleware('checkAnyRole:hr,it')->group(function () {
             Route::post('/', [EmployeeController::class, 'store']);
             Route::put('/{id}', [EmployeeController::class, 'update']);
             Route::delete('/{id}', [EmployeeController::class, 'destroy']);
+            Route::get('/{id}/id-card', [EmployeeController::class, 'printIdCard']);
         });
 
-        // Import/Export - HR only
-        Route::prefix('import-export')->middleware('checkRole:hr')->group(function () {
+        // Import/Export - HR and IT
+        Route::prefix('import-export')->middleware('checkAnyRole:hr,it')->group(function () {
             Route::get('/export', [EmployeeImportExportController::class, 'export']);
             Route::post('/import', [EmployeeImportExportController::class, 'import']);
             Route::get('/template', [EmployeeImportExportController::class, 'getTemplate']);

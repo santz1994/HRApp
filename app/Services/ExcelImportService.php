@@ -73,24 +73,36 @@ class ExcelImportService
     /**
      * Normalize row data from Excel
      */
+    /**
+     * Normalize row data from Excel (Mendukung Pemisahan Alamat & Perhitungan Dinamis)
+     */
     private function normalizeRowData(array $row): array
     {
         return [
             'nik' => trim($row['nik'] ?? $row['NIK'] ?? ''),
-            'no_ktp' => trim($row['no_ktp'] ?? $row['NO_KTP'] ?? ''),
-            'nama' => trim($row['nama'] ?? $row['NAMA'] ?? $row['name'] ?? ''),
-            'department' => trim($row['department'] ?? $row['DEPT'] ?? ''),
+            'no_ktp' => trim($row['no_ktp'] ?? $row['NO_KTP'] ?? $row['NO KTP'] ?? ''),
+            'nama' => trim($row['nama'] ?? $row['NAMA'] ?? ''),
+            'department' => trim($row['department'] ?? $row['DEPARTEMENT'] ?? $row['DEPT'] ?? ''),
             'jabatan' => trim($row['jabatan'] ?? $row['JABATAN'] ?? ''),
             'tempat_lahir' => trim($row['tempat_lahir'] ?? $row['TEMPAT LAHIR'] ?? ''),
             'tanggal_masuk' => $this->parseDate($row['tanggal_masuk'] ?? $row['TANGGAL MASUK'] ?? null),
             'tanggal_lahir' => $this->parseDate($row['tanggal_lahir'] ?? $row['TANGGAL LAHIR'] ?? null),
-            'jenis_kelamin' => trim($row['jenis_kelamin'] ?? $row['JENIS KELA'] ?? ''),
+            'jenis_kelamin' => strtoupper(trim($row['jenis_kelamin'] ?? $row['JENIS KELAMIN'] ?? '')),
+            'dept_on_line_awal' => trim($row['dept_on_line_awal'] ?? $row['DEPT ON LINE AWAL'] ?? ''),
             'dept_on_line' => trim($row['dept_on_line'] ?? $row['DEPT ON LINE'] ?? ''),
-            'dept_on_line_awal' => trim($row['dept_on_line_awal'] ?? $row['DEPT ON LINE awal'] ?? ''),
-            'status_pkwtt' => trim($row['status_pkwtt'] ?? $row['STATUS PKWTT'] ?? 'TETAP'),
-            'status_keluarga' => trim($row['status_keluarga'] ?? $row['STATUS KELUARGA'] ?? ''),
+            
+            // Enum Mapping (Aman dari Typo Excel)
+            'status_pkwtt' => strtoupper(trim($row['status_pkwtt'] ?? $row['STATUS PKWTT'] ?? 'KONTRAK')),
+            'status_keluarga' => ucwords(strtolower(trim($row['status_keluarga'] ?? $row['STATUS KELUARGA'] ?? 'Lajang'))),
+            
+            // Angka
+            'jumlah_anak' => (int) ($row['jumlah_anak'] ?? $row['JUMLAH ANAK'] ?? 0),
+            
             'pendidikan' => trim($row['pendidikan'] ?? $row['PENDIDIKAN'] ?? ''),
-            'alamat' => trim($row['alamat'] ?? $row['ALAMAT'] ?? ''),
+            
+            // Pemisahan Alamat
+            'alamat_ktp' => trim($row['alamat_ktp'] ?? $row['ALAMAT KTP'] ?? $row['ALAMAT'] ?? ''),
+            'alamat_domisili' => trim($row['alamat_domisili'] ?? $row['ALAMAT DOMISILI'] ?? ''),
         ];
     }
 
