@@ -158,12 +158,12 @@
         
         <form id="loginForm">
             <div class="form-group">
-                <label for="email">Email Address</label>
+                <label for="identifier">Email or NIK</label>
                 <input 
-                    id="email"
-                    type="email" 
-                    name="email"
-                    placeholder="Enter your email"
+                    id="identifier"
+                    type="text" 
+                    name="identifier"
+                    placeholder="Enter your email or NIK"
                     required
                 >
             </div>
@@ -186,8 +186,10 @@
         
         <div class="demo-creds">
             <p><strong>Test Credentials:</strong></p>
-            <p><strong>HR User:</strong> hr@hrapp.com</p>
-            <p><strong>Director:</strong> director@hrapp.com</p>
+            <p><strong>HR User (Email):</strong> hr@quty.co.id</p>
+            <p><strong>HR User (NIK):</strong> 1234567890123457</p>
+            <p><strong>Director (Email):</strong> director@quty.co.id</p>
+            <p><strong>Director (NIK):</strong> 1234567890123456</p>
             <p><strong>Password:</strong> password123</p>
         </div>
     </div>
@@ -196,7 +198,7 @@
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const email = document.getElementById('email').value;
+            const identifier = document.getElementById('identifier').value;
             const password = document.getElementById('password').value;
             const loginBtn = document.getElementById('loginBtn');
             const errorDiv = document.getElementById('error-message');
@@ -214,7 +216,7 @@
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ identifier, password })
                 });
 
                 const data = await response.json();

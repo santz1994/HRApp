@@ -15,7 +15,7 @@ All endpoints (except login) require Bearer token authentication.
 **Request:**
 ```json
 {
-  "email": "hr@hrapp.com",
+  "email": "hr@quty.co.id",
   "password": "password123"
 }
 ```
@@ -29,7 +29,7 @@ All endpoints (except login) require Bearer token authentication.
   "user": {
     "id": 2,
     "name": "HR User",
-    "email": "hr@hrapp.com",
+    "email": "hr@quty.co.id",
     "role": "hr"
   }
 }
@@ -65,7 +65,7 @@ curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8000/api/employees
   "user": {
     "id": 2,
     "name": "HR User",
-    "email": "hr@hrapp.com",
+    "email": "hr@quty.co.id",
     "role": "hr"
   }
 }
@@ -393,7 +393,7 @@ curl -X POST http://localhost:8000/api/employees/import-export/import \
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"hr@hrapp.com","password":"password123"}' | jq -r '.token')
+  -d '{"email":"hr@quty.co.id","password":"password123"}' | jq -r '.token')
 
 echo $TOKEN
 ```

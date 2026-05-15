@@ -148,12 +148,12 @@ bash setup.sh
 ## 🔐 Test Credentials
 
 ```
-Email: hr@hrapp.com
+Email: hr@quty.co.id
 Password: password123
 
 OR
 
-Email: director@hrapp.com  
+Email: director@quty.co.id  
 Password: password123
 ```
 
@@ -164,7 +164,7 @@ Password: password123
 ### Login
 ```bash
 curl -X POST http://localhost:8000/api/auth/login \
-  -d '{"email":"hr@hrapp.com","password":"password123"}'
+  -d '{"email":"hr@quty.co.id","password":"password123"}'
 ```
 
 ### List Employees

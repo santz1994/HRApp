@@ -79,7 +79,7 @@ cd d:\Project\HRApp
 # 3. Test API Login
 curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"hr@hrapp.com","password":"password123"}'
+  -d '{"email":"hr@quty.co.id","password":"password123"}'
 
 # 4. Use the returned token to access employee endpoints
 curl -H "Authorization: Bearer YOUR_TOKEN" \
@@ -87,8 +87,8 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 ```
 
 **Test Credentials:**
-- **HR User:** hr@hrapp.com / password123
-- **Director User:** director@hrapp.com / password123
+- **HR User:** hr@quty.co.id / password123
+- **Director User:** director@quty.co.id / password123
 
 ---
 

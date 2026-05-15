@@ -19,22 +19,24 @@ class UserSeeder extends Seeder
 
         // Create director user
         User::firstOrCreate(
-            ['email' => 'director@hrapp.com'],
+            ['email' => 'director@quty.co.id'],
             [
                 'name' => 'Director User',
                 'password' => bcrypt('password123'),
                 'role_id' => $directorRole->id,
+                'nik' => '1234567890123456',
                 'email_verified_at' => now(),
             ]
         );
 
         // Create HR user
         User::firstOrCreate(
-            ['email' => 'hr@hrapp.com'],
+            ['email' => 'hr@quty.co.id'],
             [
                 'name' => 'HR User',
                 'password' => bcrypt('password123'),
                 'role_id' => $hrRole->id,
+                'nik' => '1234567890123457',
                 'email_verified_at' => now(),
             ]
         );

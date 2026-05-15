@@ -386,8 +386,8 @@ After running seeders:
 
 | Role | Email | Password |
 |------|-------|----------|
-| HR Manager | `hr@hrapp.com` | `password123` |
-| Director | `director@hrapp.com` | `password123` |
+| HR Manager | `hr@quty.co.id` | `password123` |
+| Director | `director@quty.co.id` | `password123` |
 
 ---
 

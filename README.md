@@ -201,7 +201,7 @@ The application will be available at `http://localhost:8000`
 curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "hr@hrapp.com",
+    "email": "hr@quty.co.id",
     "password": "password123"
   }'
 ```

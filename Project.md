@@ -114,9 +114,9 @@ Sistem harus di-deploy menggunakan praktik CI/CD dan manajemen server yang moder
 
 Environment Preparation:
 
-Setel server Linux (Ubuntu 22.04/24.04).
+Setel server Linux (Ubuntu 22.04/24.04). (hold/pending)
 
-Instalasi Nginx, PHP-FPM, PostgreSQL/MySQL, dan Redis (sangat penting untuk Queue dan Caching).
+Instalasi Nginx, PHP-FPM, PostgreSQL/MySQL, dan Redis (sangat penting untuk Queue dan Caching). (hold/pending)
 
 Queue Management (Penting untuk HRIS):
 
@@ -132,12 +132,12 @@ Gunakan Nginx sebagai reverse proxy. Konfigurasikan SSL Certificate gratis via L
 
 Jika FastAPI (AI) berjalan di port berbeda (misal: 8000), setel rute internal di Nginx (contoh: /api/ai) yang mengarah ke localhost:8000 demi keamanan firewall.
 
-Database Migration & Seeding:
+Database Migration & Seeding: (do not forget to backup existing data if this is an update)
 
 Jalankan php artisan migrate --force di mode production.
 
 Jalankan Seeder khusus untuk akun Administrator utama (HR/Direksi) dan struktur Departemen awal.
 
-Version Control & CI/CD:
+Version Control & CI/CD: (pending owner decision on platform)
 
 Hubungkan repositori Git (GitHub/GitLab) dengan fitur Actions atau Webhooks. Setiap push ke branch main akan otomatis menjalankan script penarikan (git pull), instalasi dependency (composer install --no-dev), dan membersihkan cache (php artisan optimize:clear).

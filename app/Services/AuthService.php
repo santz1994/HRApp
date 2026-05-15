@@ -29,13 +29,20 @@ class AuthService
 
     /**
      * Authenticate user credentials.
+     * Supports login via email or NIK.
      */
-    public function authenticate(string $email, string $password): ?User
+    public function authenticate(string $identifier, string $password): ?User
     {
-        $user = $this->userRepository->findByEmail($email);
+        // Try finding by email first
+        $user = $this->userRepository->findByEmail($identifier);
+        
+        // If not found by email, try finding by NIK
+        if (!$user) {
+            $user = $this->userRepository->findByNIK($identifier);
+        }
 
         if (!$user || !\Hash::check($password, $user->password)) {
-            throw new \Exception('Invalid credentials.');
+            throw new \Exception('Invalid credentials. Please check your NIK/Email and password.');
         }
 
         return $user;

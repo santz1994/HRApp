@@ -71,12 +71,12 @@ Server will start at: `http://localhost:8000`
 After running seeders, use these credentials:
 
 **Director Account:**
-- Email: `director@hrapp.com`
+- Email: `director@quty.co.id`
 - Password: `password123`
 - Role: View-only access
 
 **HR Account:**
-- Email: `hr@hrapp.com`
+- Email: `hr@quty.co.id`
 - Password: `password123`
 - Role: Full management access
 
@@ -87,7 +87,7 @@ After running seeders, use these credentials:
 curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
-    "email": "hr@hrapp.com",
+    "email": "hr@quty.co.id",
     "password": "password123"
   }'
 ```
@@ -101,7 +101,7 @@ Response:
   "user": {
     "id": 2,
     "name": "HR User",
-    "email": "hr@hrapp.com",
+    "email": "hr@quty.co.id",
     "role": "hr"
   }
 }

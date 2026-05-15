@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeImportExportController;
+use App\Http\Controllers\FileUploadController;
 
 /*
 |--------------------------------------------------------------------------
@@ -53,5 +54,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/import', [EmployeeImportExportController::class, 'import']);
             Route::get('/template', [EmployeeImportExportController::class, 'getTemplate']);
         });
+
+        // File Upload Endpoint - HR and IT
+        Route::post('/upload-employees', [FileUploadController::class, 'uploadEmployees'])
+            ->middleware('checkAnyRole:hr,it');
+        
+        // Import Status - HR and IT
+        Route::get('/import-status', [FileUploadController::class, 'importStatus'])
+            ->middleware('checkAnyRole:hr,it');
     });
 });

@@ -23,12 +23,15 @@ class AuthController extends Controller
     {
         try {
             $request->validate([
-                'email' => 'required|email',
+                'identifier' => 'required',
                 'password' => 'required',
+            ], [
+                'identifier.required' => 'Email or NIK is required',
+                'password.required' => 'Password is required',
             ]);
 
             $user = $this->authService->authenticate(
-                $request->email,
+                $request->identifier,
                 $request->password
             );
 
@@ -42,6 +45,7 @@ class AuthController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
+                    'nik' => $user->nik,
                     'role' => $user->role->slug,
                 ],
             ]);

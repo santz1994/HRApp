@@ -30,6 +30,14 @@ class UserRepository
     }
 
     /**
+     * Get user by NIK.
+     */
+    public function findByNIK(string $nik): ?User
+    {
+        return $this->model->with('role')->where('nik', $nik)->first();
+    }
+
+    /**
      * Get all users.
      */
     public function all()

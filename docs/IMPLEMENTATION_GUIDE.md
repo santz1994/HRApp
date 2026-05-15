@@ -64,11 +64,11 @@ GET    /api/employees/import-export/template - Download template
 
 ### 6. **Test Credentials** ✓
 ```
-Email: hr@hrapp.com
+Email: hr@quty.co.id
 Password: password123
 Role: HR (full access)
 
-Email: director@hrapp.com
+Email: director@quty.co.id
 Password: password123
 Role: Director (read-only)
 ```
@@ -83,7 +83,7 @@ Role: Director (read-only)
 # 1. Get authentication token
 curl -X POST http://127.0.0.1:8000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"hr@hrapp.com","password":"password123"}'
+  -d '{"email":"hr@quty.co.id","password":"password123"}'
 
 # Response: { "token": "1|xxxxx" }
 

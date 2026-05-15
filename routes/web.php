@@ -18,3 +18,4 @@ Route::get('/', [LoginController::class, 'showLoginForm'])->name('login');
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login.page');
 Route::get('/dashboard', [LoginController::class, 'showDashboard'])->name('dashboard');
 Route::get('/employees', [LoginController::class, 'showEmployees'])->name('employees');
+Route::get('/employees/list', [LoginController::class, 'showEmployeesList'])->name('employees.list');

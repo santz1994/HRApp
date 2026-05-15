@@ -19,11 +19,11 @@ This is a **production-ready HR Management System** built with Laravel 10.x foll
 
 ```
 HR User (Full Access):
-  Email: hr@hrapp.com
+  Email: hr@quty.co.id
   Password: password123
   
 Director User (Read-only):
-  Email: director@hrapp.com
+  Email: director@quty.co.id
   Password: password123
 ```
 
@@ -223,7 +223,7 @@ $loginResponse = Invoke-WebRequest `
     -Uri "http://127.0.0.1:8000/api/auth/login" `
     -Method Post `
     -Headers @{"Content-Type" = "application/json"} `
-    -Body '{"email":"hr@hrapp.com","password":"password123"}'
+    -Body '{"email":"hr@quty.co.id","password":"password123"}''
 
 $token = ($loginResponse.Content | ConvertFrom-Json).token
 

@@ -29,4 +29,12 @@ class LoginController extends Controller
             'title' => 'HR App - Employee Management'
         ]);
     }
+
+    public function showEmployeesList()
+    {
+        // Employees list page with advanced table features
+        return view('employees.list', [
+            'title' => 'HR App - Employee Directory'
+        ]);
+    }
 }
