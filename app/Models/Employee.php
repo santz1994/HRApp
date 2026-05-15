@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
 
 class Employee extends Model
@@ -11,26 +12,28 @@ class Employee extends Model
     use HasFactory;
 
     protected $fillable = [
-        'nik',
-        'no_ktp',
-        'nama',
-        'department',
-        'jabatan',
-        'tempat_lahir',
-        'tanggal_masuk',
-        'tanggal_lahir',
-        'jenis_kelamin',
-        'dept_on_line',
-        'dept_on_line_awal',
-        'status_pkwtt',
-        'status_keluarga',
-        'pendidikan',
-        'alamat',
+        'nik', 'no_ktp', 'nama', 'department', 'jabatan', 
+        'tempat_lahir', 'tanggal_masuk', 'tanggal_lahir', 
+        'jenis_kelamin', 'dept_on_line', 'dept_on_line_awal', 
+        'status_pkwtt', 'status_keluarga', 'jumlah_anak', 
+        'status_pajak', 'pendidikan', 'alamat_ktp', 'alamat_domisili',
+        'dokumen_pendukung', 'data_kepribadian', 'ai_metrics'
     ];
 
     protected $casts = [
         'tanggal_masuk' => 'date',
         'tanggal_lahir' => 'date',
+        'dokumen_pendukung' => 'array', // Otomatis konversi JSON ke Array PHP
+        'data_kepribadian' => 'array',
+        'ai_metrics' => 'array',
+    ];
+
+    // SANGAT PENTING: Tambahkan ini agar poin 11, 12, 13 muncul di response JSON/API
+    protected $appends = [
+        'age', 
+        'age_on_joining', 
+        'tenure_years', 
+        'tenure_formatted'
     ];
 
     /**
@@ -131,5 +134,16 @@ class Employee extends Model
               ->orWhere('nama', 'like', "%{$search}%")
               ->orWhere('department', 'like', "%{$search}%");
         });
+    }
+
+    public function attendances(): HasMany
+    {
+        return $this->hasMany(Attendance::class, 'nik', 'nik');
+    }
+
+    // PERSIAPAN POIN 25: Relasi Riwayat SKD (Surat Keterangan Dokter)
+    public function medicalLeaves(): HasMany
+    {
+        return $this->hasMany(MedicalLeave::class, 'nik', 'nik');
     }
 }

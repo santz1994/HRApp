@@ -1,153 +1,140 @@
-Merancang aplikasi HR yang sederhana di awal namun disiapkan untuk pembaruan berskala besar (scalable) membutuhkan fondasi arsitektur yang sangat solid. Mengingat aplikasi ini nantinya akan berkembang dengan banyak pembaruan, penerapan design pattern yang memisahkan antara logika bisnis, akses data, dan routing HTTP adalah langkah yang wajib dilakukan sejak hari pertama.
+MASTER BLUEPRINT: HRIS & AI INTEGRATION PROJECT
+1. Visi Sistem & Tech Stack
+Sistem HRIS ini dirancang untuk memproses ribuan data relasional dengan antarmuka yang cepat (high-performance) dan siap untuk analitik Machine Learning.
 
-Berikut adalah rancangan arsitektur dan implementasi mendalam untuk fase pertama aplikasi HR Anda.
+Core Backend: PHP (Laravel 11+) untuk stabilitas relasional, antrean (queue), dan RBAC.
 
-1. Analisis Struktur Data & Normalisasi
-Berdasarkan sampel data dari spreadsheet yang Anda lampirkan, ada satu prinsip database penting yang harus diterapkan: Pisahkan Stored Data dan Calculated Data.
+AI Microservice: Python (FastAPI) terintegrasi dengan model AI lokal (Ollama/LLM) untuk memproses kepribadian dan analitik prediktif.
 
-Stored Data (Disimpan di DB): NIK, No. KTP, Nama, Dept, Jabatan, Tempat Lahir, Tanggal Masuk, Tanggal Lahir, Jenis Kelamin, Dept On Line, Dept On Line Awal, Status PKWTT, Status Keluarga, Pendidikan, Alamat.
+Frontend Web: React.js (dengan TanStack Query & TanStack Table) atau ekosistem Blade/Livewire jika menggunakan pendekatan monolitik modern.
 
-Calculated Data (Dihitung On-the-fly): Umur Masuk, Masa Kerja, Umur Sekarang, dan On The Year.
+Frontend Mobile (Opsional): Dart (Flutter) dengan arsitektur state management Riverpod untuk akses karyawan (Employee Self-Service).
 
-Alasan: Menyimpan data yang terus berubah karena waktu (seperti umur dan masa kerja) di dalam database akan menyebabkan anomali dan memaksa Anda membuat cron job harian hanya untuk mengupdate umur. Kalkulasi ini harus dilakukan di level aplikasi (misalnya menggunakan Accessors di Model).
+Database: PostgreSQL / MySQL 8.0+.
 
-2. Arsitektur Sistem
-Untuk memastikan aplikasi siap menerima banyak update ke depannya tanpa membuat kode menjadi "spaghetti", gunakan arsitektur Controller-Service-Repository Pattern. Arsitektur ini sangat ideal diterapkan menggunakan framework seperti Laravel (PHP) atau FastAPI (Python) yang dikombinasikan dengan React atau Flutter di sisi frontend.
+2. Struktur Data & Normalisasi (Skema 26 Poin)
+Menerapkan prinsip pemisahan antara Stored Data, Calculated Data, dan Relational Data untuk mencegah anomali database dan resource timeout.
 
-Controller: Hanya bertugas menerima Request (Filter, Sort, File Excel), memvalidasi otorisasi (hanya HR & Direksi), dan mengembalikan Response (JSON/View).
+A. Tabel Utama: employees (Stored Data)
+Tabel ini tidak menyimpan data yang berubah karena waktu.
 
-Service Layer: Berisi Business Logic. Di sinilah proses kalkulasi umur, format data, dan logika parsing data Import/Export diletakkan.
+- id (Primary Key, BigInt)
+- nik_karyawan (String/Varchar, Unique, Index)
+- no_ktp (String/Varchar, Unique, Index)
+- nama_lengkap (String)
+- alamat_ktp (Text)
+- tempat_lahir (String)
+- tanggal_lahir (Date)
+- tanggal_masuk_kerja (Date)
+- department_id (Foreign Key -> departments)
+- position_id (Foreign Key -> positions)
+- jenis_kelamin (Enum: 'L', 'P')
+- initial_department_id (Foreign Key -> departments)
+- current_department_id (Foreign Key -> departments)
+- status_pkwtt (Enum: 'TETAP', 'KONTRAK', 'HARIAN', 'MAGANG')
+- status_keluarga (Enum: 'Lajang', 'Kawin', 'Cerai Hidup', 'Cerai Mati')
+- jumlah_anak (Integer, Default 0)
+- status_pajak (String, misal: 'TK/0', 'K/1') (tergantung pada status keluarga dan jumlah anak)
+- pendidikan (String)
+- alamat_domisili (Text)
+- dokumen_pendukung (JSON - menyimpan array of file paths)
+    - foto_ktp (String - path file)
+    - foto_kk (String - path file)
+    - foto_ijazah (String - path file)
+    - foto_selfie (String - path file)
 
-Repository Layer: Berisi semua query database. Logika Filter (misal: cari berdasarkan departemen) dan Sorting diletakkan di sini agar bisa digunakan ulang di fitur lain nantinya.
+26a. data_kepribadian (JSON - hasil assessment MBTI/DISC) (opsional, bisa diisi manual oleh admin per departemen atau hasil parsing dari AI)
+26b. ai_metrics (JSON - metrik prediksi turnover, rekomendasi AI)
 
-3. Rancangan Skema Database (Fase 1)
-Tabel users (Otorisasi & Autentikasi)
-Sistem otorisasi sebaiknya menggunakan skema Role-Based Access Control (RBAC).
+B. Dynamic/Calculated Data (Virtual Attributes)
+Kalkulasi dilakukan on-the-fly di level Model menggunakan Accessors (Laravel) agar data selalu akurat detik itu juga.
+11. usia_masuk_bekerja (Selisih tanggal_masuk_kerja dan tanggal_lahir)
+12. masa_kerja (Selisih tanggal_masuk_kerja dan Current Date)
+13. usia_saat_ini (Selisih tanggal_lahir dan Current Date)
 
-id, name, email, password
+C. Tabel Relasional (One-to-Many)
+Tabel attendances: id, employee_id, tanggal, jam_masuk, jam_pulang, status_kehadiran.
 
-role_id (Misal: 1 = Direksi, 2 = HR)
+Tabel medical_records: id, employee_id, tanggal_mulai, tanggal_selesai, keterangan_sakit, path_file_skd.
 
-Tabel employees (Data Master)
-Gunakan tipe data yang tepat. NIK dan No. KTP harus VARCHAR (atau String), bukan Integer, karena seringkali diawali dengan angka 0 atau melebihi batas integer.
+3. Arsitektur Backend (Design Pattern)
+Gunakan Controller-Service-Repository Pattern agar kode tidak menjadi spaghetti.
 
-| Kolom | Tipe Data | Keterangan |
-| :--- | :--- | :--- |lahir| VARCHAR(100) | | |tanggal_lahir| DATE | Untuk kalkulasi "Umur" | |tanggal_masuk| DATE | Untuk kalkulasi "Masa Kerja" | |jenis_kelamin` | ENUM('L', 'P') | |
-| ... kolom lainnya | ... | Sesuai lampiran |
+Controller: Hanya bertugas menerima Request HTTP, memvalidasi otorisasi (Middleware RBAC), dan mengembalikan Response JSON. Dilarang menempatkan logika perhitungan di sini.
 
-4. Strategi Implementasi Fitur
-A. Filter & Sorting (Repository Layer)
-Untuk mengakomodasi pencarian yang dinamis, Anda bisa membangun Dynamic Query Builder di Repository.
+Service Layer (EmployeeService): Berisi Business Logic. Di sinilah proses format data, kalkulasi tambahan, persiapan antrean Job, dan logika parsing data Excel diletakkan.
 
-PHP
-// Contoh-the-fly* di level Service atau Frontend agar datanya selalu presisi secara *real-time* tanpa perlu *cron job*.
+Repository Layer (EmployeeRepository): Memisahkan logika query database. Dynamic Query Builder untuk Filter (Departemen, Status) dan Sorting diletakkan di sini untuk reusability.
 
-**Tabel `employees`:**
-*   `id` (Primary Key, UUID/BigInt)
-*   `nik` (String, Unique, Index)
-*    konseptual di Repository
-public function getEmployees($filters = [], $sort_by = 'created_at', $sort_dir = 'desc') {
-    $query = $this->model->newQuery();
+4. UI/UX & Frontend State Management
+Antarmuka ditargetkan untuk managerial level (Premium, Cepat, Minimalis).
 
-    if (isset($filters['department'])) {
-        $query->where('department', $filters`no_ktp` (String, Unique)
-*   `nama` (String)
-*   `department` (String) -> *Next update: jadikan relasi tabel `departments`*
-*   `jabatan` (String) -> *Next update: jadikan relasi tabel `positions`*
-*   `tempat_lahir` (String)
-*   `tanggal_masuk` (Date)
-*   `tanggal_lahir` (Date)
-*   `jenis_kelamin` (Enum: 'L', 'P')
-*   `dept_on_line` (String)
-*   `dept_on_line_awal` (String)
-*   `status_pkwtt` (Enum: 'TETAP', 'KONTRAK')
-*   `status_keluarga` (String) -> *Contoh: K/1, TK/0*
-*   `pendidikan` (String)
-*   `alamat` (Text)
+Data Table (Headless UI): Gunakan TanStack Table. Implementasikan Sticky Columns (kunci NIK dan Nama di kiri, Aksi di kanan). Berikan opsi pengaturan Density (kerapatan baris).
 
-### 3. Implementasi Akses (RBAC)
+State Management: Gunakan Zustand/Riverpod untuk UI State (tema, navigasi), dan TanStack Query (React Query) untuk Server State (caching data karyawan, auto-refetch setelah sorting tanpa reload halaman).
 
-Karena aplikasi hanya diakses oleh HR dan Direksi, implementasikan **Role-Based Access Control (RBAC)** di level Middleware.
-*   **Role HR:** Memiliki akses *Create, Read, Update, Delete* (CRUD), *Import*, dan *Export*.
-*   **Role Direksi:** Hanya memiliki akses *Read* (Melihat data, Dashboard analitik nanti['department']);
-    }
-    if (isset($filters['status_pkwtt'])) {
-        $query->where('status_pkwtt', $filters['status_pkwtt']);
-    }
-    // Pencarian global
-    if (isset($filters['search'])) {
-        $query->where(function($q) use ($filters) {
-            $q->where('name', 'like', '%'.$filters['search'].'%')
-              ->orWhere('nik', 'like', '%'.$filters['search'].'%');
-        });
-    }
+Route Protection: Bungkus rute dengan komponen keamanan frontend yang mengecek Role pengguna secara sinkron dengan token autentikasi.
 
-    return $query->orderBy($sort_by, $sort_dir)->paginate(50);
-}
-B. Import & Export Data (Service Layer)
-Ini adalah fitur krusial yang rawan menyebabkan Resource Time Out (RTO) jika tidak ditangani dengan benar saat data mencapai ribuan baris.
+5. Implementasi Fitur Krusial
+A. RBAC (Role-Based Access Control)
+Direksi: Read-Only global, akses ke Dashboard Analitik AI.
 
-Export: Jangan me-load seluruh data karyawan ke RAM sekaligus. Gunakan metode Chunking (ambil per 500 baris, tulis ke excel, ambil lagi). Saat export, panggil fungsi kalkulasi untuk memunculkan kolom Umur Sekarang dan Masa Kerja secara dinamis ke dalam sel Excel.
+HR: Full CRUD, akses modul Import/Export, Manajemen Absensi.
 
-Import: Validasi data adalah kunci. Service Layer harus mengecek duplikasi NIK atau NO. KTP. Gunakan fitur Upsert (Update or Insert): Jika NIK sudah ada, perbarui datanya; jika belum ada, buat baris baru. Gunakan Queue (antrian) di background untuk proses import agar browser user tidak loading terus-menerus.
+Admin Department: Read-Only untuk departemen sendiri, akses ke laporan kehadiran, edit data karyawan di departemen sendiri dengan persetujuan HR (Workflow Approval).
 
-C. Otorisasi Otomatis (Middleware)
-Pasang penghalang di level route (API/Web). Jika ada user yang bukan HR atau Direksi mencoba menembak URL /api/employees/export, sistem langsung mengembalikan status 403 Forbidden.
+IT Developer & Administrator: Akses penuh untuk pengelolaan sistem, termasuk manajemen pengguna dan konfigurasi AI.
 
-5. Rekomendasi Pembaruan (Next Updates)
-Karena fondasi Controller-Service-Repository sudah tertanam, menambahkan fitur kompleks di masa depan akan jauh lebih aman. Beberapa arannya, atau fokus ke setup library Export/Import agar memory-safe?
+B. Import & Export Skala Besar (Anti-RTO)
+Export: Jangan menggunakan Employee::all(). Gunakan teknik Chunking (tarik per 1000 baris, sisipkan ke memori Excel, lalu bersihkan RAM). Kalkulasi atribut dinamis harus di-inject selama proses ini.
 
+Import (Upsert & Queue): File Excel di-upload dan diproses di background menggunakan Laravel Queue (ShouldQueue). Terapkan logika Upsert (Update or Insert) berdasarkan NIK/KTP untuk menghindari duplikasi. Sediakan tabel log_imports agar HR tahu baris mana yang gagal dimasukkan.
 
-Untuk sisi UI/UX dan Frontend, tantangan utamanya adalah menampilkan data tabular yang sangat lebar (mencapai 15+ kolom berdasarkan sampel data Anda) tanpa membuat antarmuka terlihat berantakan atau membingungkan. Karena aplikasi ini ditujukan untuk level manajerial (HR & Direksi), desain harus terasa premium, cepat, dan intuitif.
+C. Integrasi AI (Python/FastAPI Microservice) (Update Akhir)
+Sistem Laravel akan mengirimkan JSON (Data Karyawan, Absensi, Usia) melalui REST API ke server FastAPI.
 
-Berikut adalah rancangan UI/UX dan arsitektur Frontend tingkat lanjut untuk mengakomodasi kebutuhan tersebut.
+Model AI lokal (Ollama) memproses sentimen, anomali absensi, dan data kepribadian.
 
-1. UI/UX Design Strategy (Minimalist & High-End)
-Aplikasi internal HR seringkali kaku. Kita bisa menggunakan pendekatan design language yang bersih, elegan, dan data-driven.
+FastAPI mengirimkan kembali hasil analitik (misal: "probabilitas_resign": 85%) untuk disimpan di kolom ai_metrics pada database HRIS.
 
-Tema Visual: Gunakan pendekatan black-on-white (monokromatik) yang clean dan minimalist. Gunakan garis pembatas (thin lines) yang tipis dan halus (misal: hex code #E5E7EB) untuk memisahkan baris data, serta rounded cards (radius sudut yang konsisten, misal 8px atau 12px) untuk membungkus elemen utama.
+D. Cetak Laporan & Dashboard Analitik
+Gunakan Chart.js atau D3.js untuk visualisasi data di dashboard. Tampilkan metrik seperti distribusi usia, masa kerja, tingkat kehadiran, dan hasil analitik AI dalam bentuk grafik yang mudah dipahami.
 
-Typography: Gunakan font sans-serif yang sangat jelas dibaca pada ukuran kecil seperti Inter atau Roboto.
+E. Cetak Kartu Karyawan
+Gunakan library seperti Dompdf untuk menghasilkan PDF kartu karyawan dengan desain yang profesional, termasuk foto KTP dan informasi penting lainnya.
 
-Data Table UX (Krusial):
+F. Log Aktivitas & Audit Trail
+Setiap aksi CRUD, import, export, dan login/logout harus dicatat di tabel logs dengan informasi pengguna, timestamp, dan deskripsi aksi untuk keperluan audit dan keamanan.
 
-Sticky Columns: Bekukan (freeze) kolom kiri (NO, NIK, NAMA) dan kolom paling kanan (Aksi: Edit/View) agar tetap terlihat saat HR melakukan scroll horizontal untuk melihat kolom alamat atau pendidikan.
+6. Deployment Strategy (Langkah Akhir)
+Sistem harus di-deploy menggunakan praktik CI/CD dan manajemen server yang modern.
 
-Density Control: Berikan opsi toggle agar pengguna bisa mengatur kerapatan baris tabel (Compact atau Comfortable) untuk menyesuaikan dengan ukuran monitor mereka.
+Environment Preparation:
 
-Visual Hierarchy: Gunakan warna abu-abu redup untuk data sekunder (seperti Tempat Lahir), dan teks tebal (hitam pekat) untuk identifier utama (seperti Nama dan NIK).
+Setel server Linux (Ubuntu 22.04/24.04).
 
-Import/Export UX: Gunakan area Drag-and-Drop yang besar untuk upload file Excel. Sediakan progress bar yang nyata saat proses import, dan jika ada validasi error (misal: NIK duplikat), tampilkan dalam modal atau drawer yang merinci baris mana yang bermasalah.
+Instalasi Nginx, PHP-FPM, PostgreSQL/MySQL, dan Redis (sangat penting untuk Queue dan Caching).
 
-2. Frontend Architecture
-Mengingat kompleksitas state dan kebutuhan performa, membangun frontend menggunakan ekosistem React atau Flutter (jika menargetkan cross-platform desktop) adalah pilihan yang sangat tangguh. Berikut adalah struktur arsitektur menggunakan pendekatan ekosistem modern (seperti React):
+Queue Management (Penting untuk HRIS):
 
-A. Component Pattern (Atomic Design)
-Pisahkan komponen UI secara modular agar dapat digunakan kembali (reusable) saat aplikasi diperbarui dengan modul baru nantinya.
+Fungsi Import Excel dan AI processing wajib berjalan di background. Konfigurasi Supervisor di server Linux untuk memastikan perintah php artisan queue:work berjalan otomatis dan restart sendiri jika crash.
 
-Atoms: Button, Input Field, Badge (untuk status PKWTT).
+Storage Link & Permissions:
 
-Molecules: Search Bar dengan ikon, Pagination Control.
+Jalankan php artisan storage:link untuk mengekspos folder dokumen pendukung dan foto KTP ke publik/akses privat. Pastikan permission folder storage dan bootstrap/cache adalah 775.
 
-Organisms: Employee Data Table (gabungan dari search bar, tabel, dan paginasi), Upload Excel Dropzone.
+Reverse Proxy & SSL:
 
-Templates/Layouts: Dashboard Layout (dengan Sidebar navigasi dan Top Bar profil).
+Gunakan Nginx sebagai reverse proxy. Konfigurasikan SSL Certificate gratis via Let's Encrypt (Certbot).
 
-B. State Management & Data Fetching
-Jangan mencampur UI state (modal terbuka/tertutup) dengan Server state (data karyawan dari database).
+Jika FastAPI (AI) berjalan di port berbeda (misal: 8000), setel rute internal di Nginx (contoh: /api/ai) yang mengarah ke localhost:8000 demi keamanan firewall.
 
-Server State (Caching & Fetching): Gunakan library seperti TanStack Query (React Query). Ini sangat powerful karena otomatis menangani caching, background updates, dan loading states. Saat HR melakukan sorting atau filter departemen, Query akan otomatis memanggil ulang API (Controller) dan memperbarui tabel tanpa perlu me-refresh halaman.
+Database Migration & Seeding:
 
-Global UI State: Gunakan library ringan seperti Zustand (jika di React) atau Riverpod (jika di Flutter) untuk menyimpan data user yang sedang login (HR atau Direksi) dan status navigasi sidebar.
+Jalankan php artisan migrate --force di mode production.
 
-C. Headless Data Table (Deep Function)
-Membangun tabel HTML biasa dengan tag <table> tidak akan cukup untuk kebutuhan Filter dan Sorting yang kompleks.
+Jalankan Seeder khusus untuk akun Administrator utama (HR/Direksi) dan struktur Departemen awal.
 
-Gunakan konsep Headless UI seperti TanStack Table. Library ini hanya menyediakan logika sorting, filtering, dan pagination, namun membebaskan Anda sepenuhnya untuk mendesain UI (tampilan baris dan kolom) menggunakan CSS/Tailwind Anda sendiri. Ini memastikan tabel dirender dengan sangat cepat (high performance) meskipun menangani banyak kolom.
+Version Control & CI/CD:
 
-D. Route Protection (Frontend Security)
-Sama seperti middleware di backend, frontend juga harus memiliki Protected Routes.
-
-Buat komponen wrapper (misal: <ProtectedRoute role="HR,Direksi">). Jika pengguna biasa mencoba mengakses rute /employees, frontend akan otomatis melempar mereka ke halaman Unauthorized atau kembali ke halaman Login, mencegah rendering UI tabel sejak awal.
-
-Dengan menggabungkan Headless Table di Frontend dan Dynamic Query Builder di Backend, Anda mendapatkan aplikasi yang tidak hanya cantik secara visual, tetapi juga sangat cepat saat mencari data spesifik dari ribuan baris.
+Hubungkan repositori Git (GitHub/GitLab) dengan fitur Actions atau Webhooks. Setiap push ke branch main akan otomatis menjalankan script penarikan (git pull), instalasi dependency (composer install --no-dev), dan membersihkan cache (php artisan optimize:clear).
