@@ -9,6 +9,8 @@ use App\Services\EmployeeService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
+use App\Services\AuditLogService;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class EmployeeController extends Controller
 {
@@ -173,6 +175,19 @@ class EmployeeController extends Controller
                 'message' => 'Failed to update employee. Please contact support.',
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    public function printIdCard($id)
+    {
+        $employee = Employee::findOrFail($id);
+        
+        // Log aktivitas
+        AuditLogService::log('EXPORT', "Mencetak ID Card untuk NIK: {$employee->nik_karyawan}", $employee);
+
+        // Generate PDF
+        $pdf = Pdf::loadView('pdf.id-card', compact('employee'))->setPaper('a8', 'portrait');
+        
+        return $pdf->stream("ID_Card_{$employee->nik_karyawan}.pdf");
     }
 
     /**

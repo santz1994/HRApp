@@ -4,12 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Carbon\Carbon;
 
 class Employee extends Model
 {
     use HasFactory;
+
+    protected $guarded = ['id'];
+    protected $casts = [
+        'tanggal_masuk_kerja' => 'date',
+        'tanggal_lahir' => 'date',
+        'dokumen_pendukung' => 'array',
+        'data_kepribadian' => 'array',
+        'ai_metrics' => 'array',
+    ];
+    protected $appends = ['usia_masuk_bekerja', 'masa_kerja', 'usia_saat_ini'];
 
     protected $fillable = [
         'nik', 'no_ktp', 'nama', 'department', 'jabatan', 
@@ -18,22 +27,6 @@ class Employee extends Model
         'status_pkwtt', 'status_keluarga', 'jumlah_anak', 
         'status_pajak', 'pendidikan', 'alamat_ktp', 'alamat_domisili',
         'dokumen_pendukung', 'data_kepribadian', 'ai_metrics'
-    ];
-
-    protected $casts = [
-        'tanggal_masuk' => 'date',
-        'tanggal_lahir' => 'date',
-        'dokumen_pendukung' => 'array', // Otomatis konversi JSON ke Array PHP
-        'data_kepribadian' => 'array',
-        'ai_metrics' => 'array',
-    ];
-
-    // SANGAT PENTING: Tambahkan ini agar poin 11, 12, 13 muncul di response JSON/API
-    protected $appends = [
-        'age', 
-        'age_on_joining', 
-        'tenure_years', 
-        'tenure_formatted'
     ];
 
     /**
@@ -145,5 +138,22 @@ class Employee extends Model
     public function medicalLeaves(): HasMany
     {
         return $this->hasMany(MedicalLeave::class, 'nik', 'nik');
+    }
+
+    protected static function booted()
+    {
+        static::saving(function ($employee) {
+            $employee->status_pajak = self::calculateStatusPajak(
+                $employee->status_keluarga, 
+                $employee->jumlah_anak
+            );
+        });
+    }
+
+    public static function calculateStatusPajak($status_keluarga, $jumlah_anak)
+    {
+        $prefix = ($status_keluarga === 'Kawin') ? 'K' : 'TK';
+        $anak = min($jumlah_anak, 3); // PTKP maksimal menanggung 3 anak
+        return "{$prefix}/{$anak}";
     }
 }

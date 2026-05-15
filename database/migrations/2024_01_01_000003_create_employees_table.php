@@ -31,9 +31,9 @@ return new class extends Migration
             $table->enum('jenis_kelamin', ['L', 'P'])->nullable(); // 14. Jenis Kelamin
             
             // Perubahan: Detail Keluarga & Pajak
-            $table->string('status_keluarga')->nullable(); // 18. Lajang, Kawin, dll
-            $table->integer('jumlah_anak')->default(0); // 19. Jumlah Anak (Baru)
-            $table->string('status_pajak', 10)->nullable(); // 20. Status Pajak TK/0, dll (Baru)
+            $table->enum('status_keluarga', ['Lajang', 'Kawin', 'Cerai Hidup', 'Cerai Mati'])->default('Lajang');
+            $table->integer('jumlah_anak')->default(0);
+            $table->string('status_pajak', 5)->nullable(); // Akan diisi otomatis oleh Model/Service
             
             $table->string('pendidikan')->nullable(); // 21. Pendidikan
             
@@ -46,7 +46,7 @@ return new class extends Migration
             $table->enum('status_pkwtt', ['TETAP', 'KONTRAK', 'HARIAN', 'MAGANG'])->default('KONTRAK')->index(); // 17. Status (Diperluas)
             
             // Perubahan: Dokumen & Persiapan AI (Poin 23 & 26)
-            $table->json('dokumen_pendukung')->nullable(); // Menyimpan path array file (KTP, KK)
+            $table->json('dokumen_pendukung')->nullable(); // Contoh struktur yang akan masuk: {"foto_ktp": "path.jpg", "foto_kk": "path.jpg", "foto_ijazah": "path.jpg", "foto_selfie": "path.jpg"}
             $table->json('data_kepribadian')->nullable(); // Menyimpan hasil tes MBTI/DISC
             $table->json('ai_metrics')->nullable(); // Menyimpan analitik AI
             

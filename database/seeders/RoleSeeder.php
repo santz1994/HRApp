@@ -7,26 +7,17 @@ use App\Models\Role;
 
 class RoleSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Create default roles
-        Role::firstOrCreate(
-            ['slug' => 'director'],
-            [
-                'name' => 'Director',
-                'description' => 'Director - Can view employee data and reports',
-            ]
-        );
+        $roles = [
+            ['name' => 'Direksi', 'description' => 'Read-Only global, Dashboard AI'],
+            ['name' => 'HR', 'description' => 'Full CRUD, Import/Export, Absensi'],
+            ['name' => 'Admin Department', 'description' => 'Read-Only dept sendiri, Workflow Approval'],
+            ['name' => 'IT Developer & Administrator', 'description' => 'Akses penuh sistem & AI'],
+        ];
 
-        Role::firstOrCreate(
-            ['slug' => 'hr'],
-            [
-                'name' => 'HR',
-                'description' => 'HR Manager - Can create, read, update, delete employees and manage imports/exports',
-            ]
-        );
+        foreach ($roles as $role) {
+            Role::firstOrCreate(['name' => $role['name']], $role);
+        }
     }
 }
