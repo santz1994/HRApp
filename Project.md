@@ -75,6 +75,8 @@ State Management: Gunakan Zustand/Riverpod untuk UI State (tema, navigasi), dan 
 
 Route Protection: Bungkus rute dengan komponen keamanan frontend yang mengecek Role pengguna secara sinkron dengan token autentikasi.
 
+Gunakan modal untuk konfirmasi aksi destruktif (hapus) dan formulir CRUD. Pastikan UX responsif dengan feedback loading dan error handling yang jelas.
+
 5. Implementasi Fitur Krusial
 A. RBAC (Role-Based Access Control)
 Direksi: Read-Only global, akses ke Dashboard Analitik AI.
