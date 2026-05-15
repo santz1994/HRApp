@@ -12,17 +12,18 @@ $highestRow = $sheet->getHighestRow();
 
 echo "Total rows: {$highestRow}\n\n";
 
-// Read header row using rangeToArray
-$headerData = $sheet->rangeToArray('A1:X1', null, true, false, false);
-if (!empty($headerData[1])) {
-    echo "HEADERS: " . json_encode(array_values($headerData[1]), JSON_UNESCAPED_UNICODE) . "\n\n";
+// Read header row (A-X only)
+$headers = [];
+for ($col = 'A'; $col <= 'X'; $col++) {
+    $headers[] = $sheet->getCell($col . '1')->getValue();
 }
+echo "HEADERS: " . json_encode($headers, JSON_UNESCAPED_UNICODE) . "\n\n";
 
-// Read first 5 data rows
-for ($row = 2; $row <= min(6, $highestRow); $row++) {
-    $rowLetter = 'A';
-    $rowData = $sheet->rangeToArray("{$rowLetter}{$row}:X{$row}", null, true, false, false);
-    if (!empty($rowData[$row])) {
-        echo "ROW {$row}: " . json_encode(array_values($rowData[$row]), JSON_UNESCAPED_UNICODE) . "\n";
+// Read first 10 data rows
+for ($row = 2; $row <= min(11, $highestRow); $row++) {
+    $rowData = [];
+    for ($col = 'A'; $col <= 'X'; $col++) {
+        $rowData[] = $sheet->getCell($col . $row)->getValue();
     }
+    echo "ROW {$row}: " . json_encode($rowData, JSON_UNESCAPED_UNICODE) . "\n";
 }
