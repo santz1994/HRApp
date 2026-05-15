@@ -3,8 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Services\EmployeeService;
+use App\Exports\EmployeeTemplateExport;
+use App\Exports\EmployeeExport;
+use App\Imports\EmployeeImport;
+use App\Jobs\ImportEmployeesJob;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
 
 class EmployeeImportExportController extends Controller
@@ -41,35 +46,76 @@ class EmployeeImportExportController extends Controller
     }
 
     /**
-     * Import employees from Excel.
-     * Only HR can perform this action.
+     * Import employees from Excel (Async Processing via Queue).
+     * File diproses di background untuk menghindari timeout pada request besar.
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
     public function import(Request $request)
     {
         try {
             $request->validate([
-                'file' => 'required|mimes:xlsx,xls,csv',
+                'file' => 'required|mimes:xlsx,xls,csv|max:5120', // Max 5MB
             ]);
 
-            // Import and process file
+            $file = $request->file('file');
+
+            // Parse Excel file
             $import = new EmployeeImport();
-            Excel::import($import, $request->file('file'));
+            Excel::import($import, $file);
 
             // Get the imported data
             $employeeData = $import->getEmployees();
 
-            // Process import with upsert logic
-            $results = $this->employeeService->importEmployees($employeeData, true);
+            if (empty($employeeData)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File tidak mengandung data atau format tidak valid',
+                ], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+
+            // Dispatch ke queue untuk async processing
+            $job = new ImportEmployeesJob(
+                $employeeData,
+                auth()->id(),
+                $file->getClientOriginalName()
+            );
+
+            $jobId = \Illuminate\Support\Str::uuid();
+
+            // Dispatch ke queue dengan job ID untuk tracking
+            \Illuminate\Support\Facades\Bus::batch([
+                $job,
+            ])->dispatch();
+
+            Log::info('Import job dispatched to queue', [
+                'user_id' => auth()->id(),
+                'file_name' => $file->getClientOriginalName(),
+                'total_records' => count($employeeData),
+                'job_id' => $jobId,
+            ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Import completed',
-                'data' => $results,
-            ]);
+                'message' => 'File berhasil diunggah. Import sedang diproses di background. Silahkan cek log untuk progress.',
+                'data' => [
+                    'total_records' => count($employeeData),
+                    'file_name' => $file->getClientOriginalName(),
+                    'timestamp' => now(),
+                    'note' => 'Proses import dilakukan secara asynchronous. Hasil akan tersimpan di activity log.',
+                ],
+            ], Response::HTTP_ACCEPTED);
+
         } catch (\Exception $e) {
+            Log::error('Employee import failed', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Gagal memproses file: ' . $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }

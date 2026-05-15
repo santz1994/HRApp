@@ -107,8 +107,7 @@ Gunakan library seperti Dompdf untuk menghasilkan PDF kartu karyawan dengan desa
 F. Log Aktivitas & Audit Trail
 Setiap aksi CRUD, import, export, dan login/logout harus dicatat di tabel logs dengan informasi pengguna, timestamp, dan deskripsi aksi untuk keperluan audit dan keamanan.
 
-G. User email
-Sementara menggunakan email asli internal namun (misal: user@quty.co.id, admin@quty.co.id) untuk keperluan testing dan pengembangan. Pastikan sistem email dapat diintegrasikan dengan layanan email nyata (SMTP) untuk produksi.
+G. Semua pengguna login menggunakan NIK (Karyawan)atau email dan password(wajib). Implementasikan fitur reset password dengan email untuk keamanan. Email tidak wajib untuk login, tapi sangat disarankan untuk fitur reset password dan notifikasi. email menggunakan format standar (misal:example@quty.co.id).
 
 6. Deployment Strategy (Langkah Akhir)
 Sistem harus di-deploy menggunakan praktik CI/CD dan manajemen server yang modern.

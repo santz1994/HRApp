@@ -240,7 +240,8 @@ class EmployeeRepository
                     'status_pkwtt' => $employee->status_pkwtt,
                     'status_keluarga' => $employee->status_keluarga,
                     'pendidikan' => $employee->pendidikan,
-                    'alamat' => $employee->alamat,
+                    'alamat_ktp' => $employee->alamat_ktp,
+                    'alamat_domisili' => $employee->alamat_domisili,
                 ];
             })
             ->toArray();

@@ -180,15 +180,38 @@ class EmployeeController extends Controller
 
     public function printIdCard($id)
     {
-        $employee = Employee::findOrFail($id);
-        
-        // Log aktivitas
-        AuditLogService::log('EXPORT', "Mencetak ID Card untuk NIK: {$employee->nik_karyawan}", $employee);
+        try {
+            $employee = Employee::findOrFail($id);
+            
+            // Log aktivitas
+            AuditLogService::log('EXPORT', "Mencetak ID Card untuk NIK: {$employee->nik}", $employee);
 
-        // Generate PDF
-        $pdf = Pdf::loadView('pdf.id-card', compact('employee'))->setPaper('a8', 'portrait');
-        
-        return $pdf->stream("ID_Card_{$employee->nik_karyawan}.pdf");
+            // Generate PDF dengan paper size A8 landscape (kartu identitas standar)
+            $pdf = Pdf::loadView('pdf.id-card', compact('employee'))
+                ->setPaper('a8', 'landscape')
+                ->setOption('margin-top', 0)
+                ->setOption('margin-right', 0)
+                ->setOption('margin-bottom', 0)
+                ->setOption('margin-left', 0);
+            
+            return $pdf->stream("ID_Card_{$employee->nik}.pdf");
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Employee not found',
+            ], Response::HTTP_NOT_FOUND);
+        } catch (\Exception $e) {
+            Log::error('ID Card generation failed', [
+                'employee_id' => $id,
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate ID Card. Please contact support.',
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**

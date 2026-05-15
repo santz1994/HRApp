@@ -12,8 +12,8 @@ class StoreEmployeeRequest extends FormRequest
     public function authorize(): bool
     {
         // Pastikan hanya role HR dan IT yang bisa menambah data (Sesuai Blueprint RBAC)
-        $userRole = strtolower(auth()->user()->role ?? '');
-        return in_array($userRole, ['hr', 'it developer & administrator']);
+        $user = auth()->user();
+        return $user && in_array($user->role->slug, ['hr', 'it']);
     }
 
     /**

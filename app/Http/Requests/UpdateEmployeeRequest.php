@@ -11,8 +11,9 @@ class UpdateEmployeeRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Only HR users can update employees
-        return auth()->check() && auth()->user()->role === 'HR';
+        // Only HR and IT users can update employees
+        $user = auth()->user();
+        return $user && in_array($user->role->slug, ['hr', 'it']);
     }
 
     /**
@@ -20,25 +21,29 @@ class UpdateEmployeeRequest extends FormRequest
      */
     public function rules(): array
     {
-        $employeeId = $this->route('employee');
+        $employeeId = $this->route('id') ?? $this->route('employee');
 
         return [
-            'nik' => 'sometimes|required|string|max:20|unique:employees,nik,' . $employeeId,
-            'no_ktp' => 'sometimes|required|string|max:20|unique:employees,no_ktp,' . $employeeId,
+            'nik' => 'sometimes|required|string|max:50|unique:employees,nik,' . $employeeId,
+            'no_ktp' => 'sometimes|required|string|size:16|unique:employees,no_ktp,' . $employeeId,
             'nama' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|max:255|unique:employees,email,' . $employeeId,
             'department' => 'sometimes|required|string|max:100',
             'jabatan' => 'sometimes|required|string|max:100',
-            'tempat_lahir' => 'nullable|string|max:255',
+            'tempat_lahir' => 'nullable|string|max:100',
             'tanggal_lahir' => 'sometimes|required|date|before:today',
             'tanggal_masuk' => 'sometimes|required|date|before_or_equal:today',
             'jenis_kelamin' => 'sometimes|required|in:L,P',
-            'dept_on_line' => 'nullable|string|max:100',
-            'dept_on_line_awal' => 'nullable|string|max:100',
-            'status_pkwtt' => 'sometimes|required|in:TETAP,KONTRAK',
-            'status_keluarga' => 'nullable|string|max:50',
-            'pendidikan' => 'nullable|string|max:50',
-            'alamat' => 'nullable|string|max:500',
+            'dept_on_line' => 'nullable|string',
+            'dept_on_line_awal' => 'nullable|string',
+            'status_pkwtt' => 'sometimes|required|in:TETAP,KONTRAK,HARIAN,MAGANG',
+            'status_keluarga' => 'sometimes|required|in:Lajang,Kawin,Cerai Hidup,Cerai Mati',
+            'jumlah_anak' => 'sometimes|integer|min:0|max:10',
+            'pendidikan' => 'nullable|string',
+            'alamat_ktp' => 'nullable|string',
+            'alamat_domisili' => 'nullable|string',
+            'dokumen_pendukung' => 'nullable|json',
+            'data_kepribadian' => 'nullable|json',
+            'ai_metrics' => 'nullable|json',
         ];
     }
 
