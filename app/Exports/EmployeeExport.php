@@ -24,22 +24,23 @@ class EmployeeExport implements FromArray, WithHeadings, WithStyles
     public function headings(): array
     {
         return [
-            'NIK',
+            'NIK Karyawan',
             'No. KTP',
-            'Nama',
+            'Nama Lengkap',
             'Department',
             'Jabatan',
             'Tempat Lahir',
             'Tanggal Lahir',
-            'Tanggal Masuk',
+            'Tanggal Masuk Kerja',
             'Jenis Kelamin',
-            'Umur Sekarang',
-            'Umur Saat Masuk',
+            'Usia Saat Ini',
+            'Usia Masuk Bekerja',
             'Masa Kerja',
             'Status PKWTT',
             'Status Keluarga',
             'Pendidikan',
-            'Alamat',
+            'Alamat KTP',
+            'Alamat Domisili',
         ];
     }
 

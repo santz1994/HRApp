@@ -20,11 +20,10 @@ class EmployeeService
      */
     public function getEmployeesList(
         array $filters = [],
-        string $sortBy = 'nama',
+        string $sortBy = 'nama_lengkap',
         string $sortDir = 'asc',
         int $perPage = 50
-    ): LengthAwarePaginator
-    {
+    ): LengthAwarePaginator {
         return $this->employeeRepository->getEmployees(
             $filters,
             $sortBy,
@@ -46,16 +45,14 @@ class EmployeeService
      */
     public function createEmployee(array $data): Employee
     {
-        // Validate required fields
         $this->validateEmployeeData($data);
 
-        // Check for duplicates
-        if ($this->employeeRepository->findByNIK($data['nik'])) {
-            throw new \Exception('Employee with this NIK already exists.');
+        if ($this->employeeRepository->findByNIK($data['nik_karyawan'])) {
+            throw new \Exception('Karyawan dengan NIK ini sudah ada.');
         }
 
         if ($this->employeeRepository->findByKTP($data['no_ktp'])) {
-            throw new \Exception('Employee with this KTP already exists.');
+            throw new \Exception('Karyawan dengan No. KTP ini sudah ada.');
         }
 
         return $this->employeeRepository->create($data);
@@ -66,25 +63,24 @@ class EmployeeService
      */
     public function updateEmployee(int $employeeId, array $data): bool
     {
-        // Validate required fields
         $this->validateEmployeeData($data, false);
 
         $employee = $this->employeeRepository->findById($employeeId);
         if (!$employee) {
-            throw new \Exception('Employee not found.');
+            throw new \Exception('Karyawan tidak ditemukan.');
         }
 
-        // Check for duplicate NIK (excluding current employee)
-        if (isset($data['nik']) && $data['nik'] !== $employee->nik) {
-            if ($this->employeeRepository->findByNIK($data['nik'])) {
-                throw new \Exception('Another employee with this NIK already exists.');
+        // Check duplicate NIK (excluding current)
+        if (isset($data['nik_karyawan']) && $data['nik_karyawan'] !== $employee->nik_karyawan) {
+            if ($this->employeeRepository->findByNIK($data['nik_karyawan'])) {
+                throw new \Exception('NIK sudah digunakan oleh karyawan lain.');
             }
         }
 
-        // Check for duplicate KTP (excluding current employee)
+        // Check duplicate KTP (excluding current)
         if (isset($data['no_ktp']) && $data['no_ktp'] !== $employee->no_ktp) {
             if ($this->employeeRepository->findByKTP($data['no_ktp'])) {
-                throw new \Exception('Another employee with this KTP already exists.');
+                throw new \Exception('No. KTP sudah digunakan oleh karyawan lain.');
             }
         }
 
@@ -98,7 +94,7 @@ class EmployeeService
     {
         $employee = $this->employeeRepository->findById($employeeId);
         if (!$employee) {
-            throw new \Exception('Employee not found.');
+            throw new \Exception('Karyawan tidak ditemukan.');
         }
 
         return $this->employeeRepository->delete($employeeId);
@@ -123,7 +119,6 @@ class EmployeeService
 
     /**
      * Import employees from array (bulk insert with upsert).
-     * Processes in chunks to avoid memory issues.
      */
     public function importEmployees(array $employeeData, bool $upsert = true): array
     {
@@ -169,45 +164,41 @@ class EmployeeService
     }
 
     /**
-     * Validate employee data.
-     */
-    /**
-     * Validate employee data (Deep Validation untuk 26 Poin Skema).
+     * Validate employee data (sesuai skema 26 Poin).
      */
     private function validateEmployeeData(array $data, bool $requireAll = true): void
     {
-        // Sesuaikan dengan skema tabel terbaru
-        $requiredFields = ['nik', 'no_ktp', 'nama', 'department', 'jabatan', 'tanggal_masuk'];
+        $requiredFields = ['nik_karyawan', 'no_ktp', 'nama_lengkap', 'department_id', 'position_id', 'tanggal_masuk_kerja'];
 
         foreach ($requiredFields as $field) {
             if ($requireAll && empty($data[$field])) {
-                throw new \Exception("Field '{$field}' is required.");
+                throw new \Exception("Field '{$field}' wajib diisi.");
             }
             if (!$requireAll && isset($data[$field]) && empty($data[$field])) {
-                throw new \Exception("Field '{$field}' cannot be empty.");
+                throw new \Exception("Field '{$field}' tidak boleh kosong.");
             }
         }
 
         // Validasi format tanggal
-        foreach (['tanggal_masuk', 'tanggal_lahir'] as $dateField) {
+        foreach (['tanggal_masuk_kerja', 'tanggal_lahir'] as $dateField) {
             if (!empty($data[$dateField]) && !\strtotime($data[$dateField])) {
-                throw new \Exception("Invalid date format for '{$dateField}'. Use YYYY-MM-DD.");
+                throw new \Exception("Format tanggal tidak valid untuk '{$dateField}'. Gunakan YYYY-MM-DD.");
             }
         }
 
         // Validasi Jenis Kelamin
         if (!empty($data['jenis_kelamin']) && !in_array($data['jenis_kelamin'], ['L', 'P'])) {
-            throw new \Exception("Invalid gender. Must be 'L' or 'P'.");
+            throw new \Exception("Jenis kelamin tidak valid. Harus 'L' atau 'P'.");
         }
 
-        // Validasi Status PKWTT (Ditambah HARIAN dan MAGANG)
+        // Validasi Status PKWTT
         if (!empty($data['status_pkwtt']) && !in_array(strtoupper($data['status_pkwtt']), ['TETAP', 'KONTRAK', 'HARIAN', 'MAGANG'])) {
-            throw new \Exception("Invalid status PKWTT. Must be 'TETAP', 'KONTRAK', 'HARIAN', or 'MAGANG'.");
+            throw new \Exception("Status PKWTT tidak valid. Harus 'TETAP', 'KONTRAK', 'HARIAN', atau 'MAGANG'.");
         }
 
         // Validasi Status Keluarga
         if (!empty($data['status_keluarga']) && !in_array(ucwords($data['status_keluarga']), ['Lajang', 'Kawin', 'Cerai Hidup', 'Cerai Mati'])) {
-            throw new \Exception("Invalid status keluarga. Must be 'Lajang', 'Kawin', 'Cerai Hidup', or 'Cerai Mati'.");
+            throw new \Exception("Status keluarga tidak valid. Harus 'Lajang', 'Kawin', 'Cerai Hidup', atau 'Cerai Mati'.");
         }
     }
 }

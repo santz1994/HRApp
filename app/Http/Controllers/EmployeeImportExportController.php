@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\EmployeeService;
+use App\Services\AuditLogService;
 use App\Exports\EmployeeTemplateExport;
 use App\Exports\EmployeeExport;
 use App\Imports\EmployeeImport;
@@ -22,8 +23,7 @@ class EmployeeImportExportController extends Controller
     }
 
     /**
-     * Export employees to Excel.
-     * Only HR can perform this action.
+     * Export employees to Excel (dengan Chunking sesuai Project.md).
      */
     public function export(Request $request)
     {
@@ -32,31 +32,33 @@ class EmployeeImportExportController extends Controller
 
             $employees = $this->employeeService->getEmployeesForExport($filters);
 
-            // Export to Excel using streaming
+            AuditLogService::log('EXPORT', "Export data karyawan (" . count($employees) . " baris)");
+
             return Excel::download(
                 new EmployeeExport($employees),
-                'employees_' . now()->format('Y-m-d_His') . '.xlsx'
+                'data_karyawan_' . now()->format('Y-m-d_His') . '.xlsx'
             );
         } catch (\Exception $e) {
+            Log::error('Export karyawan gagal', [
+                'user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage(),
+                'message' => 'Gagal export: ' . $e->getMessage(),
             ], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
     /**
      * Import employees from Excel (Async Processing via Queue).
-     * File diproses di background untuk menghindari timeout pada request besar.
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
      */
     public function import(Request $request)
     {
         try {
             $request->validate([
-                'file' => 'required|mimes:xlsx,xls,csv|max:5120', // Max 5MB
+                'file' => 'required|mimes:xlsx,xls,csv|max:5120',
             ]);
 
             $file = $request->file('file');
@@ -65,7 +67,6 @@ class EmployeeImportExportController extends Controller
             $import = new EmployeeImport();
             Excel::import($import, $file);
 
-            // Get the imported data
             $employeeData = $import->getEmployees();
 
             if (empty($employeeData)) {
@@ -82,33 +83,30 @@ class EmployeeImportExportController extends Controller
                 $file->getClientOriginalName()
             );
 
-            $jobId = \Illuminate\Support\Str::uuid();
-
-            // Dispatch ke queue dengan job ID untuk tracking
             \Illuminate\Support\Facades\Bus::batch([
                 $job,
             ])->dispatch();
 
-            Log::info('Import job dispatched to queue', [
+            AuditLogService::log('IMPORT', "Import data karyawan: {$file->getClientOriginalName()} (" . count($employeeData) . " baris)");
+
+            Log::info('Import job dispatched ke queue', [
                 'user_id' => auth()->id(),
                 'file_name' => $file->getClientOriginalName(),
                 'total_records' => count($employeeData),
-                'job_id' => $jobId,
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'File berhasil diunggah. Import sedang diproses di background. Silahkan cek log untuk progress.',
+                'message' => 'File berhasil diunggah. Import sedang diproses di background.',
                 'data' => [
                     'total_records' => count($employeeData),
                     'file_name' => $file->getClientOriginalName(),
                     'timestamp' => now(),
-                    'note' => 'Proses import dilakukan secara asynchronous. Hasil akan tersimpan di activity log.',
                 ],
             ], Response::HTTP_ACCEPTED);
 
         } catch (\Exception $e) {
-            Log::error('Employee import failed', [
+            Log::error('Import karyawan gagal', [
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
             ]);
@@ -128,27 +126,27 @@ class EmployeeImportExportController extends Controller
         try {
             $template = [
                 [
-                    'nik' => 'NIK',
+                    'nik_karyawan' => 'NIK Karyawan',
                     'no_ktp' => 'No. KTP',
-                    'nama' => 'Nama',
-                    'department' => 'Department',
-                    'jabatan' => 'Jabatan',
+                    'nama_lengkap' => 'Nama Lengkap',
+                    'department_id' => 'Department ID',
+                    'position_id' => 'Position ID',
                     'tempat_lahir' => 'Tempat Lahir',
                     'tanggal_lahir' => 'Tanggal Lahir (YYYY-MM-DD)',
-                    'tanggal_masuk' => 'Tanggal Masuk (YYYY-MM-DD)',
+                    'tanggal_masuk_kerja' => 'Tanggal Masuk Kerja (YYYY-MM-DD)',
                     'jenis_kelamin' => 'Jenis Kelamin (L/P)',
-                    'dept_on_line' => 'Dept On Line',
-                    'dept_on_line_awal' => 'Dept On Line Awal',
-                    'status_pkwtt' => 'Status PKWTT (TETAP/KONTRAK)',
-                    'status_keluarga' => 'Status Keluarga',
+                    'status_pkwtt' => 'Status PKWTT (TETAP/KONTRAK/HARIAN/MAGANG)',
+                    'status_keluarga' => 'Status Keluarga (Lajang/Kawin)',
+                    'jumlah_anak' => 'Jumlah Anak',
                     'pendidikan' => 'Pendidikan',
-                    'alamat' => 'Alamat',
+                    'alamat_ktp' => 'Alamat KTP',
+                    'alamat_domisili' => 'Alamat Domisili',
                 ],
             ];
 
             return Excel::download(
                 new EmployeeTemplateExport($template),
-                'employee_import_template_' . now()->format('Y-m-d') . '.xlsx'
+                'template_import_karyawan_' . now()->format('Y-m-d') . '.xlsx'
             );
         } catch (\Exception $e) {
             return response()->json([

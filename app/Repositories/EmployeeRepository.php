@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\Employee;
+use App\Models\Department;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class EmployeeRepository
@@ -16,19 +17,13 @@ class EmployeeRepository
 
     /**
      * Get all employees with pagination and filters.
-     * 
-     * @param array $filters ['search', 'department', 'status_pkwtt', 'jenis_kelamin']
-     * @param string $sortBy Column name to sort by
-     * @param string $sortDir Sort direction (asc or desc)
-     * @param int $perPage Items per page
      */
     public function getEmployees(
         array $filters = [],
         string $sortBy = 'created_at',
         string $sortDir = 'desc',
         int $perPage = 50
-    ): LengthAwarePaginator
-    {
+    ): LengthAwarePaginator {
         $query = $this->model->newQuery();
 
         // Apply search filter
@@ -52,25 +47,34 @@ class EmployeeRepository
         }
 
         // Apply sorting
-        $query->orderBy($sortBy, strtolower($sortDir) === 'asc' ? 'asc' : 'desc');
+        $allowedSorts = [
+            'nik_karyawan', 'nama_lengkap', 'tanggal_lahir', 'tanggal_masuk_kerja',
+            'jenis_kelamin', 'status_pkwtt', 'created_at',
+        ];
+
+        $sortColumn = in_array($sortBy, $allowedSorts) ? $sortBy : 'created_at';
+        $query->orderBy($sortColumn, strtolower($sortDir) === 'asc' ? 'asc' : 'desc');
+
+        // Eager load relasi
+        $query->with(['department', 'position']);
 
         return $query->paginate($perPage);
     }
 
     /**
-     * Get employee by ID.
+     * Get employee by ID with relations.
      */
     public function findById(int $id): ?Employee
     {
-        return $this->model->find($id);
+        return $this->model->with(['department', 'position', 'initialDepartment', 'currentDepartment'])->find($id);
     }
 
     /**
-     * Get employee by NIK.
+     * Get employee by NIK (nik_karyawan).
      */
     public function findByNIK(string $nik): ?Employee
     {
-        return $this->model->where('nik', $nik)->first();
+        return $this->model->where('nik_karyawan', $nik)->first();
     }
 
     /**
@@ -116,10 +120,10 @@ class EmployeeRepository
     /**
      * Get employees by department.
      */
-    public function getByDepartment(string $department, int $perPage = 50)
+    public function getByDepartment(int $departmentId, int $perPage = 50)
     {
-        return $this->model->byDepartment($department)
-            ->orderBy('nama')
+        return $this->model->byDepartment($departmentId)
+            ->orderBy('nama_lengkap')
             ->paginate($perPage);
     }
 
@@ -129,30 +133,27 @@ class EmployeeRepository
     public function getByStatusPKWTT(string $status, int $perPage = 50)
     {
         return $this->model->byStatusPKWTT($status)
-            ->orderBy('nama')
+            ->orderBy('nama_lengkap')
             ->paginate($perPage);
     }
 
     /**
-     * Get all unique departments.
+     * Get all departments from departments table.
      */
     public function getDepartments()
     {
-        return $this->model->distinct()
-            ->pluck('department')
-            ->sort()
-            ->values();
+        return Department::orderBy('name')->get();
     }
 
     /**
-     * Get employee count by department.
+     * Get employee count by department (using FK).
      */
     public function getCountByDepartment()
     {
-        return $this->model->groupBy('department')
-            ->selectRaw('department, COUNT(*) as count')
-            ->get()
-            ->pluck('count', 'department');
+        return $this->model->join('departments', 'employees.department_id', '=', 'departments.id')
+            ->groupBy('departments.name')
+            ->selectRaw('departments.name as department_name, COUNT(*) as count')
+            ->pluck('count', 'department_name');
     }
 
     /**
@@ -167,16 +168,23 @@ class EmployeeRepository
     }
 
     /**
-     * Upsert employee (update if exists, create if not).
+     * Upsert employee (update if exists by NIK or KTP, create if not).
      */
     public function upsert(array $data): Employee
     {
-        // Check if employee exists by NIK or KTP
-        $employee = $this->findByNIK($data['nik']) ?? $this->findByKTP($data['no_ktp'] ?? null);
+        $employee = null;
+
+        if (!empty($data['nik_karyawan'])) {
+            $employee = $this->findByNIK($data['nik_karyawan']);
+        }
+
+        if (!$employee && !empty($data['no_ktp'])) {
+            $employee = $this->findByKTP($data['no_ktp']);
+        }
 
         if ($employee) {
             $employee->update($data);
-            return $employee;
+            return $employee->fresh();
         }
 
         return $this->create($data);
@@ -189,7 +197,6 @@ class EmployeeRepository
     {
         $query = $this->model->newQuery();
 
-        // Apply filters if provided
         if (!empty($filters['department'])) {
             $query->byDepartment($filters['department']);
         }
@@ -209,11 +216,11 @@ class EmployeeRepository
     }
 
     /**
-     * Export employees to array with calculated fields.
+     * Export employees to array with calculated fields (chunked for memory efficiency).
      */
     public function toArray(array $filters = []): array
     {
-        $query = $this->model->newQuery();
+        $query = $this->model->with(['department', 'position']);
 
         if (!empty($filters['department'])) {
             $query->byDepartment($filters['department']);
@@ -222,28 +229,31 @@ class EmployeeRepository
             $query->byStatusPKWTT($filters['status_pkwtt']);
         }
 
-        return $query->get()
-            ->map(function (Employee $employee) {
-                return [
-                    'nik' => $employee->nik,
+        $results = [];
+        $query->chunk(1000, function ($chunk) use (&$results) {
+            foreach ($chunk as $employee) {
+                $results[] = [
+                    'nik_karyawan' => $employee->nik_karyawan,
                     'no_ktp' => $employee->no_ktp,
-                    'nama' => $employee->nama,
-                    'department' => $employee->department,
-                    'jabatan' => $employee->jabatan,
+                    'nama_lengkap' => $employee->nama_lengkap,
+                    'department' => $employee->department?->name ?? '',
+                    'jabatan' => $employee->position?->name ?? '',
                     'tempat_lahir' => $employee->tempat_lahir,
                     'tanggal_lahir' => $employee->tanggal_lahir?->format('Y-m-d'),
-                    'tanggal_masuk' => $employee->tanggal_masuk?->format('Y-m-d'),
+                    'tanggal_masuk_kerja' => $employee->tanggal_masuk_kerja?->format('Y-m-d'),
                     'jenis_kelamin' => $employee->jenis_kelamin,
-                    'umur_sekarang' => $employee->age,
-                    'umur_saat_masuk' => $employee->age_on_joining,
-                    'masa_kerja' => $employee->tenure_formatted,
+                    'usia_saat_ini' => $employee->usia_saat_ini,
+                    'usia_masuk_bekerja' => $employee->usia_masuk_bekerja,
+                    'masa_kerja' => $employee->masa_kerja_formatted,
                     'status_pkwtt' => $employee->status_pkwtt,
                     'status_keluarga' => $employee->status_keluarga,
                     'pendidikan' => $employee->pendidikan,
                     'alamat_ktp' => $employee->alamat_ktp,
                     'alamat_domisili' => $employee->alamat_domisili,
                 ];
-            })
-            ->toArray();
+            }
+        });
+
+        return $results;
     }
 }

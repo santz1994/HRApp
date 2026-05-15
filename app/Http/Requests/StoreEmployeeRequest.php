@@ -11,9 +11,8 @@ class StoreEmployeeRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // Pastikan hanya role HR dan IT yang bisa menambah data (Sesuai Blueprint RBAC)
         $user = auth()->user();
-        return $user && in_array($user->role->slug, ['hr', 'it']);
+        return $user && in_array($user->role?->slug, ['hr', 'it']);
     }
 
     /**
@@ -22,24 +21,24 @@ class StoreEmployeeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'nik' => 'required|string|max:50|unique:employees,nik',
+            'nik_karyawan' => 'required|string|max:50|unique:employees,nik_karyawan',
             'no_ktp' => 'required|string|size:16|unique:employees,no_ktp',
-            'nama' => 'required|string|max:150',
-            'department' => 'required|string|max:100',
-            'jabatan' => 'required|string|max:100',
+            'nama_lengkap' => 'required|string|max:150',
+            'department_id' => 'required|exists:departments,id',
+            'position_id' => 'required|exists:positions,id',
+            'initial_department_id' => 'nullable|exists:departments,id',
+            'current_department_id' => 'nullable|exists:departments,id',
             'tempat_lahir' => 'nullable|string|max:100',
-            'tanggal_masuk' => 'required|date',
+            'tanggal_masuk_kerja' => 'required|date',
             'tanggal_lahir' => 'required|date',
             'jenis_kelamin' => 'required|in:L,P',
-            'dept_on_line_awal' => 'nullable|string',
-            'dept_on_line' => 'nullable|string',
             'status_pkwtt' => 'required|in:TETAP,KONTRAK,HARIAN,MAGANG',
             'status_keluarga' => 'required|in:Lajang,Kawin,Cerai Hidup,Cerai Mati',
             'jumlah_anak' => 'integer|min:0',
             'pendidikan' => 'nullable|string',
             'alamat_ktp' => 'nullable|string',
             'alamat_domisili' => 'nullable|string',
-            // status_pajak tidak divalidasi karena di-generate otomatis oleh Model
+            'dokumen_pendukung' => 'nullable|array',
         ];
     }
 
@@ -49,13 +48,23 @@ class StoreEmployeeRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'nik.required' => 'NIK is required',
-            'nik.unique' => 'This NIK already exists',
-            'nama.required' => 'Employee name is required',
-            'tanggal_lahir.before' => 'Birth date must be in the past',
-            'tanggal_masuk.before_or_equal' => 'Join date cannot be in the future',
-            'status_pkwtt.in' => 'Employment status must be TETAP or KONTRAK',
-            'jenis_kelamin.in' => 'Gender must be L (Male) or P (Female)',
+            'nik_karyawan.required' => 'NIK Karyawan wajib diisi',
+            'nik_karyawan.unique' => 'NIK Karyawan sudah terdaftar',
+            'no_ktp.required' => 'No. KTP wajib diisi',
+            'no_ktp.size' => 'No. KTP harus 16 digit',
+            'no_ktp.unique' => 'No. KTP sudah terdaftar',
+            'nama_lengkap.required' => 'Nama lengkap wajib diisi',
+            'department_id.required' => 'Department wajib dipilih',
+            'department_id.exists' => 'Department tidak valid',
+            'position_id.required' => 'Jabatan wajib dipilih',
+            'position_id.exists' => 'Jabatan tidak valid',
+            'tanggal_masuk_kerja.required' => 'Tanggal masuk kerja wajib diisi',
+            'tanggal_lahir.required' => 'Tanggal lahir wajib diisi',
+            'jenis_kelamin.required' => 'Jenis kelamin wajib dipilih',
+            'jenis_kelamin.in' => 'Jenis kelamin harus L (Laki-laki) atau P (Perempuan)',
+            'status_pkwtt.required' => 'Status PKWTT wajib dipilih',
+            'status_pkwtt.in' => 'Status PKWTT harus TETAP, KONTRAK, HARIAN, atau MAGANG',
+            'status_keluarga.required' => 'Status keluarga wajib dipilih',
         ];
     }
 }
