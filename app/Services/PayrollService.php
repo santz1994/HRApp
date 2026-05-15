@@ -29,7 +29,7 @@ class PayrollService
             return $this->getEmptyCompensationStructure();
         }
 
-        $masaKerjaTahun = $this->calculateTenureYears($employee->tanggal_masuk);
+        $masaKerjaTahun = $this->calculateTenureYears($employee->tanggal_masuk_kerja);
 
         return [
             'base_salary' => $baseSalary,
@@ -39,7 +39,7 @@ class PayrollService
             'annual_raise_estimate' => $this->calculateAnnualRaise($employee, $baseSalary),
             'total_annual_compensation' => $this->calculateTotalCompensation($baseSalary, $masaKerjaTahun),
             'tenure_years' => $masaKerjaTahun,
-            'next_pemutihan_eligible' => $this->getNextPemutihanDate($employee->tanggal_masuk),
+            'next_pemutihan_eligible' => $this->getNextPemutihanDate($employee->tanggal_masuk_kerja),
         ];
     }
 
@@ -212,7 +212,7 @@ class PayrollService
     {
         return [
             'employee_id' => $employee->id,
-            'employee_name' => $employee->nama,
+            'employee_name' => $employee->nama_lengkap,
             'year' => $year,
             'month' => $month,
             'base_salary' => $baseSalary,
