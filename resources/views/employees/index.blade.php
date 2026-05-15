@@ -324,8 +324,8 @@ function displayEmployees(data) {
             return td;
         };
 
-        tr.appendChild(createCell(emp.nik));
-        tr.appendChild(createCell(emp.nama));
+        tr.appendChild(createCell(emp.nik_karyawan));
+        tr.appendChild(createCell(emp.nama_lengkap));
         tr.appendChild(createCell(emp.email));
         tr.appendChild(createCell(emp.jabatan));
         tr.appendChild(createCell(emp.department));
