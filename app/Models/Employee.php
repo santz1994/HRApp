@@ -62,15 +62,38 @@ class Employee extends Model
         return implode(', ', $parts) ?: '0 Hari';
     }
 
+    // QUERY SCOPES
+    public function scopeSearch($query, string $search)
+    {
+        return $query->where('nik', 'like', "%{$search}%")
+                     ->orWhere('no_ktp', 'like', "%{$search}%")
+                     ->orWhere('nama', 'like', "%{$search}%");
+    }
+
+    public function scopeByDepartment($query, string $department)
+    {
+        return $query->where('department', $department);
+    }
+
+    public function scopeByStatusPKWTT($query, string $status)
+    {
+        return $query->where('status_pkwtt', $status);
+    }
+
+    public function scopeByGender($query, string $gender)
+    {
+        return $query->where('jenis_kelamin', $gender);
+    }
+
     // RELASI
     public function attendances(): HasMany
     {
-        return $this->hasMany(Attendance::class, 'nik', 'nik');
+        return $this->hasMany(Attendance::class, 'employee_id');
     }
 
     public function medicalLeaves(): HasMany
     {
-        return $this->hasMany(MedicalLeave::class, 'nik', 'nik');
+        return $this->hasMany(MedicalLeave::class, 'employee_id');
     }
 
     // EVENT BOOTED (Otomatisasi Status Pajak)

@@ -10,14 +10,14 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         $roles = [
-            ['name' => 'Direksi', 'description' => 'Read-Only global, Dashboard AI'],
-            ['name' => 'HR', 'description' => 'Full CRUD, Import/Export, Absensi'],
-            ['name' => 'Admin Department', 'description' => 'Read-Only dept sendiri, Workflow Approval'],
-            ['name' => 'IT Developer & Administrator', 'description' => 'Akses penuh sistem & AI'],
+            ['name' => 'Direksi', 'slug' => 'director', 'description' => 'Read-Only global, Dashboard AI'],
+            ['name' => 'HR', 'slug' => 'hr', 'description' => 'Full CRUD, Import/Export, Absensi'],
+            ['name' => 'Admin Department', 'slug' => 'admin_department', 'description' => 'Read-Only dept sendiri, Workflow Approval'],
+            ['name' => 'IT Developer & Administrator', 'slug' => 'it', 'description' => 'Akses penuh sistem & AI'],
         ];
 
         foreach ($roles as $role) {
-            Role::firstOrCreate(['name' => $role['name']], $role);
+            Role::firstOrCreate(['slug' => $role['slug']], $role);
         }
     }
 }

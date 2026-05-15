@@ -79,13 +79,12 @@ Gunakan modal untuk konfirmasi aksi destruktif (hapus) dan formulir CRUD. Pastik
 
 5. Implementasi Fitur Krusial
 A. RBAC (Role-Based Access Control)
-Direksi: Read-Only global, akses ke Dashboard Analitik AI.
 
-HR: Full CRUD, akses modul Import/Export, Manajemen Absensi.
-
-Admin Department: Read-Only untuk departemen sendiri, akses ke laporan kehadiran, edit data karyawan di departemen sendiri dengan persetujuan HR (Workflow Approval).
-
-IT Developer & Administrator: Akses penuh untuk pengelolaan sistem, termasuk manajemen pengguna dan konfigurasi AI.
+- Direksi: Read-Only global, akses ke Dashboard Analitik AI.
+- HR: Full CRUD, akses modul Import/Export, Manajemen Absensi.
+- Admin Department: Read-Only untuk departemen sendiri, akses ke laporan kehadiran, edit data karyawan di departemen sendiri dengan persetujuan HR (Workflow Approval).
+- IT Developer & Administrator: Akses penuh untuk pengelolaan sistem, termasuk manajemen pengguna dan konfigurasi AI.
+- Karyawan: Akses terbatas untuk melihat data diri sendiri, mengajukan cuti, dan melihat riwayat absensi.
 
 B. Import & Export Skala Besar (Anti-RTO)
 Export: Jangan menggunakan Employee::all(). Gunakan teknik Chunking (tarik per 1000 baris, sisipkan ke memori Excel, lalu bersihkan RAM). Kalkulasi atribut dinamis harus di-inject selama proses ini.
@@ -107,6 +106,9 @@ Gunakan library seperti Dompdf untuk menghasilkan PDF kartu karyawan dengan desa
 
 F. Log Aktivitas & Audit Trail
 Setiap aksi CRUD, import, export, dan login/logout harus dicatat di tabel logs dengan informasi pengguna, timestamp, dan deskripsi aksi untuk keperluan audit dan keamanan.
+
+G. User email
+Sementara menggunakan email asli internal namun (misal: user@quty.co.id, admin@quty.co.id) untuk keperluan testing dan pengembangan. Pastikan sistem email dapat diintegrasikan dengan layanan email nyata (SMTP) untuk produksi.
 
 6. Deployment Strategy (Langkah Akhir)
 Sistem harus di-deploy menggunakan praktik CI/CD dan manajemen server yang modern.
