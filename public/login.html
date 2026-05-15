@@ -160,12 +160,13 @@
             
             <form @submit.prevent="login">
                 <div class="form-group">
-                    <label for="email">Email Address</label>
+                    <label for="email">Email Address or NIK</label>
                     <input 
                         id="email"
                         v-model="form.email" 
-                        type="email" 
-                        placeholder="Enter your email"
+                        type="text"
+                        placeholder="Enter your email or NIK"
+                        autocomplete="username"
                         required
                         :disabled="loading"
                     >
@@ -178,6 +179,7 @@
                         v-model="form.password" 
                         type="password" 
                         placeholder="Enter your password"
+                        autocomplete="current-password"
                         required
                         :disabled="loading"
                     >
@@ -190,10 +192,12 @@
             </form>
             
             <div class="demo-creds">
-                <p><strong>Test Credentials:</strong></p>
-                <p><strong>HR User:</strong> hr@quty.co.id</p>
-                <p><strong>Director:</strong> director@quty.co.id</p>
-                <p><strong>Password:</strong> password123</p>
+                <p><strong>📋 Test Credentials:</strong></p>
+                <p>👨‍💼 <strong>HR:</strong> hr@quty.co.id</p>
+                <p>👔 <strong>Director:</strong> director@quty.co.id</p>
+                <p>🔧 <strong>IT Admin:</strong> it@quty.co.id</p>
+                <p>🏢 <strong>Admin Dept:</strong> admindept@quty.co.id</p>
+                <p><strong>Password (all):</strong> password</p>
             </div>
         </div>
     </div>

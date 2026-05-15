@@ -9,6 +9,11 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\MedicalRecordController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\PositionController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\SystemConfigurationController;
+use App\Http\Controllers\HealthCheckController;
+use App\Http\Controllers\ImportExcelController;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,6 +23,11 @@ use App\Http\Controllers\PositionController;
 | Semua route menggunakan prefix /api
 |
 */
+
+// ============================================
+// Health Check (Public)
+// ============================================
+Route::get('/health', [HealthCheckController::class, 'check']);
 
 // ============================================
 // Authentication Routes (Public)
@@ -93,5 +103,38 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [MedicalRecordController::class, 'index']);
         Route::post('/', [MedicalRecordController::class, 'store']);
         Route::delete('/{id}', [MedicalRecordController::class, 'destroy']);
+    });
+
+    // --- Settings Routes (Akun Saya - Semua Role) ---
+    Route::prefix('settings')->group(function () {
+        Route::get('/profile', [SettingsController::class, 'getProfile']);
+        Route::put('/profile', [SettingsController::class, 'updateProfile']);
+        Route::post('/change-password', [SettingsController::class, 'changePassword']);
+        Route::get('/active-sessions', [SettingsController::class, 'getActiveSessions']);
+        Route::delete('/sessions/{tokenId}', [SettingsController::class, 'logoutSession']);
+        Route::post('/logout-all-sessions', [SettingsController::class, 'logoutAllSessions']);
+        Route::get('/notification-preferences', [SettingsController::class, 'getNotificationPreferences']);
+        Route::put('/notification-preferences', [SettingsController::class, 'updateNotificationPreferences']);
+    });
+
+    // --- User Management Routes (HR, IT only) ---
+    Route::prefix('users')->middleware('checkAnyRole:hr,it')->group(function () {
+        Route::get('/', [UserManagementController::class, 'index']);
+        Route::get('/roles', [UserManagementController::class, 'getRoles']);
+        Route::post('/', [UserManagementController::class, 'store']);
+        Route::get('/{id}', [UserManagementController::class, 'show']);
+        Route::put('/{id}', [UserManagementController::class, 'update']);
+        Route::delete('/{id}', [UserManagementController::class, 'destroy']);
+        Route::post('/{id}/reset-password', [UserManagementController::class, 'resetPassword']);
+        Route::post('/bulk-import', [UserManagementController::class, 'bulkImportUsers']);
+    });
+
+    // --- Import Excel Routes (HR, IT) ---
+    Route::prefix('import')->middleware('checkAnyRole:hr,it')->group(function () {
+        Route::post('/preview', [ImportExcelController::class, 'previewUpload']);
+        Route::post('/process', [ImportExcelController::class, 'processImport']);
+        Route::post('/validate', [ImportExcelController::class, 'validateData']);
+        Route::get('/template', [ImportExcelController::class, 'downloadTemplate']);
+        Route::get('/status', [ImportExcelController::class, 'importStatus']);
     });
 });

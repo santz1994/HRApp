@@ -21,24 +21,35 @@ class AuthController extends Controller
 
     /**
      * Login user.
+     * Accepts either 'email' or 'identifier' field
      */
     public function login(Request $request)
     {
         try {
             $request->validate([
-                'identifier' => 'required',
+                'email' => 'nullable|required_without:identifier',
+                'identifier' => 'nullable|required_without:email',
                 'password' => 'required',
             ], [
-                'identifier.required' => 'Email or NIK is required',
+                'email.required_without' => 'Email or NIK is required',
+                'identifier.required_without' => 'Email or NIK is required',
                 'password.required' => 'Password is required',
             ]);
 
+            // Accept either 'email' or 'identifier' field
+            $loginIdentifier = $request->email ?? $request->identifier;
+
             $user = $this->authService->authenticate(
-                $request->identifier,
+                $loginIdentifier,
                 $request->password
             );
 
             $token = $this->authService->createToken($user);
+
+            \Illuminate\Support\Facades\Log::info('User logged in successfully', [
+                'user_id' => $user->id,
+                'email' => $user->email,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -52,7 +63,22 @@ class AuthController extends Controller
                     'role' => $user->role->slug,
                 ],
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Illuminate\Support\Facades\Log::warning('Login validation failed', [
+                'errors' => $e->errors(),
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Login failed', [
+                'identifier' => $request->input('email') ?? $request->input('identifier'),
+                'error' => $e->getMessage(),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),

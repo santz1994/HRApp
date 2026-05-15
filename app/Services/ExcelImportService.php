@@ -83,21 +83,27 @@ class ExcelImportService
 
     /**
      * Normalisasi data baris dari Excel.
-     * Mendukung nama kolom lama dan baru.
+     * Mendukung berbagai variasi nama kolom (English, Indonesia, shorthand)
      */
     private function normalizeRowData(array $row): array
     {
         return [
-            'nik_karyawan' => trim($row['nik_karyawan'] ?? $row['NIK KARYAWAN'] ?? $row['nik'] ?? $row['NIK'] ?? ''),
-            'no_ktp' => trim($row['no_ktp'] ?? $row['NO_KTP'] ?? $row['NO KTP'] ?? ''),
-            'nama_lengkap' => trim($row['nama_lengkap'] ?? $row['NAMA LENGKAP'] ?? $row['nama'] ?? $row['NAMA'] ?? ''),
-            'department_name' => trim($row['department'] ?? $row['DEPARTMENT'] ?? $row['DEPARTEMENT'] ?? $row['DEPT'] ?? ''),
-            'position_name' => trim($row['jabatan'] ?? $row['JABATAN'] ?? $row['position'] ?? $row['POSITION'] ?? ''),
-            'tempat_lahir' => trim($row['tempat_lahir'] ?? $row['TEMPAT LAHIR'] ?? ''),
-            'tanggal_masuk_kerja' => $this->parseDate($row['tanggal_masuk_kerja'] ?? $row['TANGGAL MASUK KERJA'] ?? $row['tanggal_masuk'] ?? $row['TANGGAL MASUK'] ?? null),
-            'tanggal_lahir' => $this->parseDate($row['tanggal_lahir'] ?? $row['TANGGAL LAHIR'] ?? null),
-            'jenis_kelamin' => strtoupper(trim($row['jenis_kelamin'] ?? $row['JENIS KELAMIN'] ?? '')),
-            'status_pkwtt' => strtoupper(trim($row['status_pkwtt'] ?? $row['STATUS PKWTT'] ?? 'KONTRAK')),
+            'nik_karyawan' => trim($row['nik_karyawan'] ?? $row['NIK Karyawan'] ?? $row['nik'] ?? $row['NIK'] ?? ''),
+            'no_ktp' => trim($row['no_ktp'] ?? $row['No. KTP'] ?? $row['NO KTP'] ?? $row['no_ktp'] ?? ''),
+            'nama_lengkap' => trim($row['nama_lengkap'] ?? $row['Nama Lengkap'] ?? $row['nama'] ?? $row['Nama'] ?? ''),
+            'department_name' => trim($row['department_id'] ?? $row['department'] ?? $row['nama_departemen'] ?? $row['Departemen'] ?? $row['dept'] ?? ''),
+            'position_name' => trim($row['position_id'] ?? $row['jabatan'] ?? $row['nama_jabatan'] ?? $row['Jabatan'] ?? $row['position'] ?? ''),
+            'tempat_lahir' => trim($row['tempat_lahir'] ?? $row['Tempat Lahir'] ?? ''),
+            'tanggal_masuk_kerja' => $this->parseDate($row['tanggal_masuk_kerja'] ?? $row['Tanggal Masuk Kerja'] ?? $row['tanggal_masuk'] ?? null),
+            'tanggal_lahir' => $this->parseDate($row['tanggal_lahir'] ?? $row['Tanggal Lahir'] ?? null),
+            'jenis_kelamin' => strtoupper(trim($row['jenis_kelamin'] ?? $row['Jenis Kelamin'] ?? '')),
+            'status_pkwtt' => strtoupper(trim($row['status_pkwtt'] ?? $row['Status PKWTT'] ?? 'KONTRAK')),
+            'status_keluarga' => trim($row['status_keluarga'] ?? $row['Status Keluarga'] ?? 'Lajang'),
+            'jumlah_anak' => (int) ($row['jumlah_anak'] ?? $row['Jumlah Anak'] ?? 0),
+            'pendidikan' => trim($row['pendidikan'] ?? $row['Pendidikan'] ?? ''),
+            'alamat_ktp' => trim($row['alamat_ktp'] ?? $row['Alamat KTP'] ?? ''),
+            'alamat_domisili' => trim($row['alamat_domisili'] ?? $row['Alamat Domisili'] ?? ''),
+            'status_pajak' => trim($row['status_pajak'] ?? $row['Status Pajak'] ?? 'TK/0'),
             'status_keluarga' => ucwords(strtolower(trim($row['status_keluarga'] ?? $row['STATUS KELUARGA'] ?? 'Lajang'))),
             'jumlah_anak' => (int) ($row['jumlah_anak'] ?? $row['JUMLAH ANAK'] ?? 0),
             'pendidikan' => trim($row['pendidikan'] ?? $row['PENDIDIKAN'] ?? ''),
