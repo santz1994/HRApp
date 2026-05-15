@@ -73,11 +73,27 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user can modify employees.
+     * Check if user is IT.
+     */
+    public function isIT(): bool
+    {
+        return $this->hasRole(Role::ROLE_IT);
+    }
+
+    /**
+     * Check if user is Admin Department.
+     */
+    public function isAdminDepartment(): bool
+    {
+        return $this->hasRole(Role::ROLE_ADMIN_DEPARTMENT);
+    }
+
+    /**
+     * Check if user can modify employees (HR or IT).
      */
     public function canModifyEmployees(): bool
     {
-        return $this->isHR();
+        return $this->isHR() || $this->isIT();
     }
 
     /**
@@ -85,6 +101,6 @@ class User extends Authenticatable
      */
     public function canViewEmployees(): bool
     {
-        return $this->isHR() || $this->isDirector();
+        return $this->isHR() || $this->isDirector() || $this->isIT() || $this->isAdminDepartment();
     }
 }

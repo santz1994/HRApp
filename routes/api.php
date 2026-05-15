@@ -21,6 +21,8 @@ use App\Http\Controllers\FileUploadController;
 // Authentication Routes (Public)
 Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [AuthController::class, 'sendResetLink']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 
 // Protected Routes (Require Authentication)

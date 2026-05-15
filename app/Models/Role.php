@@ -11,6 +11,9 @@ class Role extends Model
 
     public const ROLE_DIRECTOR = 'director';
     public const ROLE_HR = 'hr';
+    public const ROLE_ADMIN_DEPARTMENT = 'admin_department';
+    public const ROLE_IT = 'it';
+    public const ROLE_EMPLOYEE = 'employee';
 
     /**
      * Get the users for this role.
