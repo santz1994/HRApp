@@ -28,3 +28,6 @@ composer.lock
 package-lock.json
 Project.md
 docs/*
+*.xlsx
+*.xls
+*.csv
